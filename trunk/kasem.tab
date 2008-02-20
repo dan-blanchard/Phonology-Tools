@@ -1,0 +1,27 @@
+# Kasem vowel singular/plural rules
+# 	A->	B /	C	_	D
+	i	e	ʤu	_	
+	i	e	gu	_	
+	i	e	ŋu	_		
+	g	0		_	i
+	ŋ	0		_	i
+	ʤ	0		_	i
+	g	0		_	e
+	ŋ	0		_	e
+	ʤ	0		_	e
+	i	0	i	_	
+	V	0		_	VV	
+	u	w		_	i
+	u	w		_	e	
+	ai	e		_	
+	u	0	g	_	a
+	u	0	ŋ	_	a
+
+
+# koga/kwe base = kogu
+# pia/pe base = pai
+# buga/bwi base = bug
+# yua/ywe base = yu
+
+#kogui -> kogue -> koue -> kue -> kwe
+#kogua -> koga
