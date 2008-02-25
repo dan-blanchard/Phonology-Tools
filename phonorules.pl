@@ -23,6 +23,7 @@ while (<RULES>)
 {
 	chomp;
 	$rule = $_;
+	# add support for comments after rules on same line
 	if (!($rule =~ m/^#(\X|.)*/))
 	{	
 		$rule =~ s/\s+//g;
