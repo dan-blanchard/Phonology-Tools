@@ -1,5 +1,5 @@
-# Kasem vowel singular/plural rules
-# A->B/C_D
+% Kasem vowel singular/plural rules
+% A->B/C_D
 i->e/ʤu_
 i->e/gu_
 i->e/ŋu_
@@ -20,11 +20,11 @@ u->w/_i
 u->w/_e
 ai->e/_
 
-# insertion: 0->i/_e
+% insertion: 0->i/_e
 
-# koga/kwe base = kogu
-# pia/pe base = pai
-# buga/bwi base = bug
-# yua/ywe base = yu
-# kogui -> kogue -> koue -> kue -> kwe
-# kogua -> koga
+% koga/kwe base = kogu
+% pia/pe base = pai
+% buga/bwi base = bug
+% yua/ywe base = yu
+% kogui -> kogue -> koue -> kue -> kwe
+% kogua -> koga
