@@ -8,11 +8,13 @@
 use strict;
 use POSIX;
 use utf8;
-use Text::Autoformat;
+use Encode;
+use Text::ASCIITable;
 
 my @matches = ();
 my @replaces = ();
 my @originalRules = ();
+my $outputTable = Text::ASCIITable->new();
 my $rule;
 my $ruleFile = $ARGV[0];
 my $testFile = $ARGV[1];
@@ -24,22 +26,28 @@ my $madeSub = 0;
 my @line;
 
 
+# Setup Unicode input and output
+binmode STDOUT, ":utf8";
+binmode STDIN, ":utf8";
 
 open RULES, $ruleFile;
+binmode RULES, ":utf8";
 while (<RULES>)
 {
 	chomp;
 	$rule = $_;
 	$rule =~ s/%.*$//;
-	# add support for comments after rules on same line
 	if ($rule ne "")
 	{	
 		$rule =~ s/\s+//g;
+		$rule =~ s/0/∅/g;
 		$rule =~ m/^(\X+)?->(\X+)?\/(\X+)?_(\X+)?$/;	
 		$match = "($3)$1($4)";
 		$match =~ s/V/(a|e|i|o|u)/g;					
 		$replace = "\$1$2\$2";
-		$replace =~ s/0//g;
+		$replace =~ s/∅//g;
+		$rule =~ s/->/ ➔ /g;
+		$rule =~ s/\// ╱  /g;
 		push(@matches,$match);
 		push(@replaces,$replace);
 		push(@originalRules,$rule);
@@ -48,15 +56,16 @@ while (<RULES>)
 }
 close (RULES);
 
-# Print rules
-print "Rules:\n";
-for (my $i = 1; $i <= scalar(@originalRules); $i++)
-{
-	print "$i.\t" . $originalRules[$i-1] . "\n";
-}
-print "\n";
+# # Print rules
+# print "Rules:\n";
+# for (my $i = 1; $i <= scalar(@originalRules); $i++)
+# {
+# 	print $originalRules[$i-1] . "\n";
+# }
+# print "\n";
 
 open TEST, $testFile;
+binmode TEST, ":utf8";
 while (<TEST>)
 {
 	chomp;
