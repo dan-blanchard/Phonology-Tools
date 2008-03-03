@@ -1,6 +1,6 @@
 % Kasem vowel singular/plural rules
 % A->B/C_D
-i->e/ʤu_
+i->e/ʤu_ % Testing comments after rule
 i->e/gu_
 i->e/ŋu_
 u->0/g_a
@@ -20,7 +20,6 @@ u->w/_i
 u->w/_e
 ai->e/_
 
-% insertion: 0->i/_e
 
 % koga/kwe base = kogu
 % pia/pe base = pai
