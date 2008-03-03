@@ -14,6 +14,9 @@ use Text::ASCIITable;
 my @matches = ();
 my @replaces = ();
 my @originalRules = ();
+my @outputColumns = ();
+my @columnNames = ();
+my $col;
 my $outputTable = Text::ASCIITable->new();
 my $rule;
 my $ruleFile = $ARGV[0];
@@ -22,7 +25,6 @@ my $match;
 my $replace;
 my $uForm;
 my $sForm;
-my $madeSub = 0;
 my @line;
 
 
@@ -51,18 +53,18 @@ while (<RULES>)
 		push(@matches,$match);
 		push(@replaces,$replace);
 		push(@originalRules,$rule);
-#		print "MATCH: $match\nREPLACE: $replace\n";
 	}
 }
 close (RULES);
 
-# # Print rules
-# print "Rules:\n";
-# for (my $i = 1; $i <= scalar(@originalRules); $i++)
-# {
-# 	print $originalRules[$i-1] . "\n";
-# }
-# print "\n";
+# Setup rule column
+push(@columnNames,"Rules");
+$col = $originalRules[0];
+for (my $i = 1; $i < scalar(@originalRules); $i++)
+{
+	$col = $col . "\n" . $originalRules[$i];
+}
+push(@outputColumns,$col);
 
 open TEST, $testFile;
 binmode TEST, ":utf8";
@@ -82,9 +84,10 @@ while (<TEST>)
 		$sForm = "";
 	}
 	$sForm = $line[1];
-	$madeSub = 0;
 	if ($uForm ne "")
 	{	
+		push(@columnNames, $uForm);					
+		$col = "";
 		for (my $i = 0; $i < scalar(@matches); $i++)
 		{
 			$match = $matches[$i];
@@ -95,22 +98,20 @@ while (<TEST>)
 				{
 					$replace =~ s/2/3/;					
 				}
-#				print "\nMATCHED: $match\tREPLACED BY: $replace\n";
-				if (!($madeSub))
-				{
-					print "$uForm";					
-				}
-				print " -> ";
 				$uForm =~ s/$matches[$i]/$replace/gee;
-				print $uForm;
-				$madeSub = 1;				
+				$col = $col . $uForm . "\n";
 			}
-		}
-		if (!($madeSub))
-		{
-			print $uForm;
-		}
-		print "\n";			
+			else
+			{
+				$col = $col . "-\n";
+			}			
+		}		
+		push(@outputColumns, $col);
 	}
 }
 close (TEST);
+
+# Build output table
+$outputTable->setCols(@columnNames);
+$outputTable->addRow(@outputColumns);
+print $outputTable;
