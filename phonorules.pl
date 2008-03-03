@@ -83,6 +83,7 @@ while (<TEST>)
 	$_ =~ s/%.*$//;
 	@line = split(/\t/);
 	$uForm = $line[0];
+	$uForm =~ s/\s+//g;	
 	if (scalar(@line) == 2)
 	{
 		$sForm = $line[1];
@@ -92,6 +93,7 @@ while (<TEST>)
 		$sForm = "";
 	}
 	$sForm = $line[1];
+	$sForm =~ s/\s+//g;	
 	if ($uForm ne "")
 	{	
 		push(@columnNames, $uForm);					
