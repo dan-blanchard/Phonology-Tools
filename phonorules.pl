@@ -5,6 +5,11 @@
 
 # Usage: ./phonorules <RULE FILE> <TEST FILE>
 
+# TODO "n or more" repetitions
+# TODO morpheme boundaries
+# TODO symbols
+# TODO features
+
 use strict;
 use POSIX;
 use utf8;
@@ -32,6 +37,7 @@ my @line;
 binmode STDOUT, ":utf8";
 binmode STDIN, ":utf8";
 
+# Read rule file
 open RULES, $ruleFile;
 binmode RULES, ":utf8";
 while (<RULES>)
@@ -45,8 +51,10 @@ while (<RULES>)
 		$rule =~ s/0/∅/g;
 		$rule =~ m/^(\X+)?->(\X+)?\/(\X+)?_(\X+)?$/;	
 		$match = "($3)$1($4)";
-		$match =~ s/V/(a|e|i|o|u)/g;					
 		$replace = "\$1$2\$2";
+		$match =~ s/∅//g; # insertions
+		$match =~ s/V/(a|e|i|o|u)/g;	# vowels				
+		$match =~ s/#/\$/g; # word boundary
 		$replace =~ s/∅//g;
 		$rule =~ s/->/ ➔ /g;
 		$rule =~ s/\// ╱  /g;
@@ -66,6 +74,8 @@ for (my $i = 1; $i < scalar(@originalRules); $i++)
 }
 push(@outputColumns,$col);
 
+
+# Read test file
 open TEST, $testFile;
 binmode TEST, ":utf8";
 while (<TEST>)
