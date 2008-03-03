@@ -6,7 +6,6 @@
 # Usage: ./phonorules <RULE FILE> <TEST FILE>
 
 # TODO "n or more" repetitions
-# TODO morpheme boundaries
 # TODO symbols
 # TODO features
 
@@ -66,7 +65,7 @@ while (<RULES>)
 close (RULES);
 
 # Setup rule column
-push(@columnNames,"Rules");
+push(@columnNames,"");
 $col = $originalRules[0];
 for (my $i = 1; $i < scalar(@originalRules); $i++)
 {
@@ -82,7 +81,6 @@ while (<TEST>)
 {
 	chomp;
 	$_ =~ s/%.*$//;
-	$_ =~ s/\+//g;
 	@line = split(/\t/);
 	$uForm = $line[0];
 	if (scalar(@line) == 2)
@@ -97,6 +95,7 @@ while (<TEST>)
 	if ($uForm ne "")
 	{	
 		push(@columnNames, $uForm);					
+		$uForm =~ s/\+//g;
 		$col = "";
 		for (my $i = 0; $i < scalar(@matches); $i++)
 		{
