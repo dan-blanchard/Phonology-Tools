@@ -50,14 +50,16 @@ while (<RULES>)
 	{	
 		$rule =~ s/\s+//g;
 		$rule =~ s/0/∅/g;
-		$rule =~ m/^(\X+)?->(\X+)?\/(\X+)?_(\X+)?$/;	
-		$match = "($3)$1($4)";
-		$replace = "\$1$2\$2";
+		$rule =~ m/^(\X+)?((->)|➔)(\X+)?((\/)|(╱))(\X+)?_(\X+)?$/;	
+		$match = "($8)$1($9)";
+		$replace = "\$1$4\$2";
 		$match =~ s/∅//g; # insertions
 		$match =~ s/V/(a|e|i|o|u)/g;	# vowels				
 		$match =~ s/#/\$/g; # word boundary
 		$replace =~ s/∅//g;
+		$rule =~ s/➔/ ➔ /g;
 		$rule =~ s/->/ ➔ /g;
+		$rule =~ s/╱/ ╱  /g;
 		$rule =~ s/\// ╱  /g;
 		push(@matches,$match);
 		push(@replaces,$replace);
@@ -119,7 +121,7 @@ while (<TEST>)
 				$col = $col . "-\n";
 			}			
 		}
-		if ($uForm ne $sForm)
+		if (($uForm ne $sForm) && ($sForm ne ""))
 		{
 			$uForm = "*$uForm";
 		}
@@ -135,4 +137,4 @@ $outputTable->setCols(@columnNames);
 $outputTable->addRow(@outputColumns);
 $outputTable->addRow(@surfaceForms);
 $outputTable->addRow(@attestedForms);
-print $outputTable;
+print "\n$outputTable\n";
