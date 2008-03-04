@@ -48,16 +48,18 @@ while (<RULES>)
 	$rule =~ s/%.*$//;
 	if ($rule ne "")
 	{	
-		$rule =~ s/\s+//g;
-		$rule =~ s/0/∅/g;
+		$rule =~ s/\s+//g;	# remove extra whitespace
+		$rule =~ s/0/∅/g;	# pretty-print empty sets
 		$rule =~ m/^(\X+)?((->)|➔)(\X+)?((\/)|(╱))(\X+)?_(\X+)?$/;	
 		$match = "($8)$1($9)";
 		$replace = "\$1$4\$2";
 		$match =~ s/∅//g; # insertions
 		$match =~ s/V/(a|e|i|o|u)/g;	# vowels				
-		$match =~ s/#/\$/g; # word boundary
-		$replace =~ s/∅//g;
-		$rule =~ s/➔/ ➔ /g;
+		$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
+		$match =~ s/#/\$/g; # word boundary at end
+		$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
+		# More Pretty-Printing Stuff #		
+		$rule =~ s/➔/ ➔ /g;	
 		$rule =~ s/->/ ➔ /g;
 		$rule =~ s/╱/ ╱  /g;
 		$rule =~ s/\// ╱  /g;
