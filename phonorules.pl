@@ -20,6 +20,8 @@ my @replaces = ();
 my @originalRules = ();
 my @outputColumns = ();
 my @columnNames = ();
+my @surfaceForms = ( "Surface Forms" );
+my @attestedForms = ( "Attested Forms" );
 my $col;
 my $outputTable = Text::ASCIITable->new();
 my $rule;
@@ -72,7 +74,7 @@ for (my $i = 1; $i < scalar(@originalRules); $i++)
 	$col = $col . "\n" . $originalRules[$i];
 }
 push(@outputColumns,$col);
-
+$outputTable->setOptions('drawRowLine',1);
 
 # Read test file
 open TEST, $testFile;
@@ -116,7 +118,13 @@ while (<TEST>)
 			{
 				$col = $col . "-\n";
 			}			
-		}		
+		}
+		if ($uForm ne $sForm)
+		{
+			$uForm = "*$uForm";
+		}
+		push(@surfaceForms, $uForm);
+		push(@attestedForms, $sForm);
 		push(@outputColumns, $col);
 	}
 }
@@ -125,4 +133,6 @@ close (TEST);
 # Build output table
 $outputTable->setCols(@columnNames);
 $outputTable->addRow(@outputColumns);
+$outputTable->addRow(@surfaceForms);
+$outputTable->addRow(@attestedForms);
 print $outputTable;
