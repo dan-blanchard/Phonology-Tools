@@ -3,7 +3,7 @@
 # Dan Blanchard
 # Phonological Rule Processor
 
-# Usage: ./phonorules <RULE FILE> <TEST FILE>
+# Usage: ./phonorules [-f <FEATURE CHART FILE>] <RULE FILE> <TEST FILE>
 
 # TODO "n or more" repetitions
 # TODO symbols
@@ -14,7 +14,10 @@ use POSIX;
 use utf8;
 use Encode;
 use Text::ASCIITable;
+use Getopt::Std;
 
+our ($opt_f);
+getopts('f:');
 my @matches = ();
 my @replaces = ();
 my @originalRules = ();
@@ -32,7 +35,38 @@ my $replace;
 my $uForm;
 my $sForm;
 my @line;
+my %featureChart = ();
+my @features = ();
+my $first = 1;
+# want featureChart syntax such as: $featureChart{$phone}{$feature} = value
+# would also like $featureChart{@list of features}
 
+# Check for feature chart file
+if ($opt_f)
+{
+	open FEATURES, $opt_f;
+	binmode FEATURES, ":utf8";
+	while (<FEATURES>)
+	{
+		chomp;
+		@line = split(/\t/);	
+		if (!$first)
+		{
+			for (my $i = 1; $i < scalar(@line); $i++)
+			{
+				$featureChart{$line[0]}{$features[$i]} = $line[$i];
+			}
+		}
+		else
+		{
+			# read features from first line
+			@features = @line;
+			$first = 0;
+		}
+		
+	}
+	close(FEATURES);
+}
 
 # Setup Unicode input and output
 binmode STDOUT, ":utf8";
@@ -50,11 +84,11 @@ while (<RULES>)
 	{	
 		$rule =~ s/\s+//g;	# remove extra whitespace
 		$rule =~ s/0/∅/g;	# pretty-print empty sets
-		$rule =~ m/^(\X+)?((->)|➔)(\X+)?((\/)|(╱))(\X+)?_(\X+)?$/;	
-		$match = "($8)$1($9)";
-		$replace = "\$1$4\$2";
+		$rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/;	
+		$match = "($3)$1($4)";
+		$replace = "\$1$2\$2";
 		$match =~ s/∅//g; # insertions
-		$match =~ s/V/(a|e|i|o|u)/g;	# vowels				
+		$match =~ s/V/(?:a|e|i|o|u)/g;	# vowels				
 		$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 		$match =~ s/#/\$/g; # word boundary at end
 		$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
@@ -111,10 +145,6 @@ while (<TEST>)
 			$replace = "\"$replaces[$i]\"";
 			if ($uForm =~ m/$match/)
 			{
-				if ($match =~ m/\|/)
-				{
-					$replace =~ s/2/3/;					
-				}
 				$uForm =~ s/$matches[$i]/$replace/gee;
 				$col = $col . $uForm . "\n";
 			}
