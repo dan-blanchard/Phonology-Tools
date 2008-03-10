@@ -151,5 +151,31 @@ sub featuresForPhone
 	}
 }
 
+sub adjustPhoneFeatures
+{
+	my $self = shift;
+	my $phone = shift;
+	# print "Phone: ". $phone . "\n";
+	my $newFeatures = Set::Scalar->new();
+	my @replacementList = [];
+	$newFeatures->insert(@_);
+	# print ("New features: $newFeatures");
+	my $oldFeatures = $self->featuresForPhone($phone);
+	while (defined(my $oldFeature = $oldFeatures->each))
+	{
+		while (defined(my $newFeature = $newFeatures->each))
+		{
+			if (substr($oldFeature,1) eq substr($newFeature,1))
+			{
+				push(@replacementList,$newFeature);
+			}
+			else
+			{
+				push(@replacementList,$oldFeature);
+			}
+		}
+	}
+	return @{$self->phonesForFeatures(@replacementList)}[0]
+}
 
 1;
