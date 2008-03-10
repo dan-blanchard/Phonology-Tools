@@ -70,11 +70,14 @@ while (<RULES>)
 			$match = "($3)$1($4)";
 			$replace = "\$1$2\$2";
 			$match =~ s/∅//g; # insertions
-			if ($opt_f && ($match =~ m/\[(\X+)\]/))
+			if ($opt_f)
 			{
-				# The mess below converts features to disjunctions of phones that match those features
-				$match =~ s{\[([^\[]+)\]}
-							{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+				if ($match =~ m/\[(\X+)\]/)
+				{					
+					# The mess below converts features to disjunctions of phones that match those features
+					$match =~ s{\[([^\[]+)\]}
+								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+				}							
 			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
@@ -135,7 +138,16 @@ while (<TEST>)
 				$replace = "\"$replaces[$i]\"";
 				if ($uForm =~ m/$match/)
 				{
-					$uForm =~ s/$matches[$i]/$replace/gee;
+					if ($replaces[$i] =~ m/\[(\X+)\]/)
+					{					
+						# # The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
+						# $uForm =~ s{$replace}
+						# 			{$featureChart->adjustPhoneFeatures($2,split(/,/,$replaces[$i]))}ge;
+					}											
+					else
+					{
+						$uForm =~ s/$match/$replace/gee;						
+					}
 					$col = $col . $uForm . "\n";
 				}
 				else
