@@ -10,6 +10,8 @@ use Set::Scalar;
 use warnings;
 use strict;
 
+use overload	'""' => \&stringify; # Allows pretty printing of feature chart
+
 # Constructor
 sub new 
 {
@@ -20,17 +22,22 @@ sub new
 	$self->{'featuresToPhones'} = ();
 	$self->{'features'} = [];
 	$self->{'outputTable'} = Text::ASCIITable->new({headingText => 'Feature Chart' });
+	
+	# Sets up pretty printing of feature sets
+	my $class_callback = sub { "[" . join(", ",sort $_[0]->elements) . "]" };
+	Set::Scalar->as_string_callback($class_callback);
+	
 	bless($self, $class);
 	return($self);
 }
 
 sub read_file 
 {
-	my $self = $_[0];
+	my $self = shift;
 	my @line;
 	my $first = 1;
 	my $featureKey = "";
-	open FEATURES, $_[1];
+	open FEATURES, $_[0];
 	binmode FEATURES, ":utf8";
 	while (<FEATURES>)
 	{
@@ -44,7 +51,7 @@ sub read_file
 				if ($line[$i] ne "0")
 				{
 					$featureKey = $line[$i] . @{$self->{'features'}}[$i-1]; # Stores feature value as +feature or -feature
-					# Maps phonemes to features
+					# Map phonemes to features
 					if (exists($self->{'phonesToFeatures'}{$line[0]}))
 					{
 						$self->{'phonesToFeatures'}{$line[0]}->insert($featureKey);
@@ -53,14 +60,14 @@ sub read_file
 					{
 						$self->{'phonesToFeatures'}{$line[0]} = Set::Scalar->new($featureKey);						
 					}
-					# Maps features to phonemes
+					# Map features to phonemes
 					if (exists($self->{'featuresToPhones'}{$featureKey}))
 					{
 						$self->{'featuresToPhones'}{$featureKey}->insert($line[0]);
 					}					
 					else
 					{
-						$self->{'featuresToPhones'}{$featureKey} = Set::Scalar->new([$line[0]]);
+						$self->{'featuresToPhones'}{$featureKey} = Set::Scalar->new($line[0]);
 					}
 				}
 			}
@@ -78,10 +85,10 @@ sub read_file
 	close(FEATURES);
 }
 
-sub output
+sub stringify
 {
-	my $self = $_[0];
-	print $self->{'outputTable'};
+	my $self = shift;
+	return sprintf "%s", $self->{'outputTable'};
 }
 
 sub phonesForFeatures
@@ -90,13 +97,13 @@ sub phonesForFeatures
 	my @featureList = @_;
 	my $featureSet = Set::Scalar->new();
 	my $first = 1;
-	for (my $i = 1; $i < scalar(@featureList); $i++)
+	for (my $i = 0; $i < scalar(@featureList); $i++)
 	{
 		if (exists($self->{'featuresToPhones'}{$featureList[$i]}))
 		{
 			if (!$first)
 			{
-				$featureSet = $featureSet->intersect($self->{'featuresToPhones'}{$featureList[$i]});				
+				$featureSet = $featureSet->intersection($self->{'featuresToPhones'}{$featureList[$i]});				
 			}
 			else
 			{
@@ -121,9 +128,28 @@ sub phonesForFeatures
 		print STDERR "]\n";
 		exit(0);
 	}
-	return $featureSet->members();
+	return $featureSet;
 }
 
+sub phoneDisjuctionForFeatures
+{
+	my $self = shift;
+	return "(?:" . join("|",$self->phonesForFeatures(@_)->members) . ")";
+}
+
+sub featuresForPhone
+{
+	my $self = shift;
+	if (exists($self->{'phonesToFeatures'}{$_[0]}))
+	{
+		return $self->{'phonesToFeatures'}{$_[0]};
+	}
+	else
+	{
+		print STDERR "ERROR: Could not find phone '$_[0]' in feature chart.\n";
+		exit(0);
+	}
+}
 
 
 1;
