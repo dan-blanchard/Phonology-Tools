@@ -12,6 +12,9 @@ use strict;
 
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
+my $BAD_LEFT = "〖";
+my $BAD_RIGHT = "〗";
+
 # Constructor
 sub new 
 {
@@ -115,7 +118,7 @@ sub phonesForFeatures
 		else
 		{
 			print STDERR "ERROR:\tUnknown feature '$featureList[$i]'\n";
-			exit(0);
+			# exit(0);
 		}
 	}
 	if ($featureSet->size == 0)
@@ -127,7 +130,8 @@ sub phonesForFeatures
 			print STDERR ", $feature";
 		}
 		print STDERR "]\n";
-		exit(0);
+		$featureSet->insert("■");
+		# exit(0);
 	}
 	return $featureSet;
 }
@@ -162,8 +166,9 @@ sub adjustPhoneFeatures
 	my %replacementHash = ();
 	my $featureKey;
 	$newFeatures->insert(@_);
-	# print ("New features: $newFeatures");
+	# print ("New features: $newFeatures\n");
 	my $oldFeatures = $self->featuresForPhone($phone);
+	# print "Old features: $oldFeatures\n";
 	while (defined(my $oldFeature = $oldFeatures->each))
 	{
 		$featureKey = substr($oldFeature,1);

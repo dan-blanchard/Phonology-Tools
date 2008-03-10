@@ -7,7 +7,6 @@
 
 # TODO "n or more" repetitions
 # TODO symbols
-# TODO features
 
 use strict;
 use POSIX;
@@ -136,13 +135,16 @@ while (<TEST>)
 			for (my $i = 0; $i < scalar(@matches); $i++)
 			{
 				$match = $matches[$i];
+				# print "Match: $match\n";
+				# print "Replace: $replaces[$i]\n";
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
 					# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
-					$replaces[$i] =~ s{\[(\X+)\]}
+					my $tempReplace = $replaces[$i];
+					$tempReplace =~ s{\[(\X+)\]}
 										{$featureChart->adjustPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;
-					$replace = "\"$replaces[$i]\"";
+					$replace = "\"$tempReplace\"";
 					$uForm =~ s/$match/$replace/gee;						
 					$col = $col . $uForm . "\n";
 				}
