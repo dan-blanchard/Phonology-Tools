@@ -44,12 +44,13 @@ if ($opt_f)
 {
 	$featureChart = FeatureChart->new();
 	$featureChart->read_file($opt_f);
-	$featureChart->output();
+	print $featureChart;	
 }
 
 # Setup Unicode input and output
 binmode STDOUT, ":utf8";
 binmode STDIN, ":utf8";
+binmode STDERR, ":utf8";
 
 # Read rule file
 open RULES, $ruleFile;
@@ -69,7 +70,12 @@ while (<RULES>)
 			$match = "($3)$1($4)";
 			$replace = "\$1$2\$2";
 			$match =~ s/∅//g; # insertions
-			$match =~ s/V/(?:a|e|i|o|u)/g;	# vowels				
+			if ($opt_f && ($match =~ m/\[(\X+)\]/))
+			{
+				# The mess below converts features to disjunctions of phones that match those features
+				$match =~ s{\[([^\[]+)\]}
+							{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
 			$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
