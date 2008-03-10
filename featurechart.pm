@@ -95,6 +95,7 @@ sub phonesForFeatures
 {
 	my $self = shift;
 	my @featureList = @_;
+	# print "Feature list: @_\n";
 	my $featureSet = Set::Scalar->new();
 	my $first = 1;
 	for (my $i = 0; $i < scalar(@featureList); $i++)
@@ -157,25 +158,30 @@ sub adjustPhoneFeatures
 	my $phone = shift;
 	# print "Phone: ". $phone . "\n";
 	my $newFeatures = Set::Scalar->new();
-	my @replacementList = [];
+	my @replacementList = ();
+	my %replacementHash = ();
+	my $featureKey;
 	$newFeatures->insert(@_);
 	# print ("New features: $newFeatures");
 	my $oldFeatures = $self->featuresForPhone($phone);
 	while (defined(my $oldFeature = $oldFeatures->each))
 	{
+		$featureKey = substr($oldFeature,1);
+		$replacementHash{$featureKey} = substr($oldFeature,0,1);
 		while (defined(my $newFeature = $newFeatures->each))
 		{
-			if (substr($oldFeature,1) eq substr($newFeature,1))
+			if ($featureKey eq substr($newFeature,1))
 			{
-				push(@replacementList,$newFeature);
-			}
-			else
-			{
-				push(@replacementList,$oldFeature);
+				$replacementHash{substr($oldFeature,1)} = substr($newFeature,0,1);
 			}
 		}
 	}
-	return @{$self->phonesForFeatures(@replacementList)}[0]
+	foreach $featureKey (keys %replacementHash)
+	{
+		push(@replacementList,$replacementHash{$featureKey} . $featureKey);
+	}
+	# print "Replacement list: @replacementList\n";
+	return $self->phonesForFeatures(@replacementList)->each;
 }
 
 1;
