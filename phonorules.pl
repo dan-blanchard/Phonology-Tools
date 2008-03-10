@@ -15,6 +15,8 @@ use utf8;
 use Encode;
 use Text::ASCIITable;
 use Getopt::Std;
+use warnings;
+use FeatureChart;
 
 our ($opt_f);
 getopts('f:');
@@ -35,37 +37,14 @@ my $replace;
 my $uForm;
 my $sForm;
 my @line;
-my %featureChart = ();
-my @features = ();
-my $first = 1;
-# want featureChart syntax such as: $featureChart{$phone}{$feature} = value
-# would also like $featureChart{@list of features}
+my $featureChart;
 
 # Check for feature chart file
 if ($opt_f)
 {
-	open FEATURES, $opt_f;
-	binmode FEATURES, ":utf8";
-	while (<FEATURES>)
-	{
-		chomp;
-		@line = split(/\t/);	
-		if (!$first)
-		{
-			for (my $i = 1; $i < scalar(@line); $i++)
-			{
-				$featureChart{$line[0]}{$features[$i]} = $line[$i];
-			}
-		}
-		else
-		{
-			# read features from first line
-			@features = @line;
-			$first = 0;
-		}
-		
-	}
-	close(FEATURES);
+	$featureChart = FeatureChart->new();
+	$featureChart->read_file($opt_f);
+	$featureChart->output();
 }
 
 # Setup Unicode input and output
@@ -84,22 +63,25 @@ while (<RULES>)
 	{	
 		$rule =~ s/\s+//g;	# remove extra whitespace
 		$rule =~ s/0/∅/g;	# pretty-print empty sets
-		$rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/;	
-		$match = "($3)$1($4)";
-		$replace = "\$1$2\$2";
-		$match =~ s/∅//g; # insertions
-		$match =~ s/V/(?:a|e|i|o|u)/g;	# vowels				
-		$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
-		$match =~ s/#/\$/g; # word boundary at end
-		$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
-		# More Pretty-Printing Stuff #		
-		$rule =~ s/➔/ ➔ /g;	
-		$rule =~ s/->/ ➔ /g;
-		$rule =~ s/╱/ ╱  /g;
-		$rule =~ s/\// ╱  /g;
-		push(@matches,$match);
-		push(@replaces,$replace);
-		push(@originalRules,$rule);
+		if ($rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/)			
+		{
+			no warnings;
+			$match = "($3)$1($4)";
+			$replace = "\$1$2\$2";
+			$match =~ s/∅//g; # insertions
+			$match =~ s/V/(?:a|e|i|o|u)/g;	# vowels				
+			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
+			$match =~ s/#/\$/g; # word boundary at end
+			$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
+			# More Pretty-Printing Stuff #		
+			$rule =~ s/➔/ ➔ /g;	
+			$rule =~ s/->/ ➔ /g;
+			$rule =~ s/╱/ ╱  /g;
+			$rule =~ s/\// ╱  /g;
+			push(@matches,$match);
+			push(@replaces,$replace);
+			push(@originalRules,$rule);
+		}
 	}
 }
 close (RULES);
@@ -121,45 +103,48 @@ while (<TEST>)
 {
 	chomp;
 	$_ =~ s/%.*$//;
-	@line = split(/\t/);
-	$uForm = $line[0];
-	$uForm =~ s/\s+//g;	
-	if (scalar(@line) == 2)
+	if ($_ ne "")
 	{
+		@line = split(/\t/);
+		$uForm = $line[0];
+		$uForm =~ s/\s+//g;	
+		if (scalar(@line) == 2)
+		{
+			$sForm = $line[1];
+		}
+		else
+		{
+			$sForm = "";
+		}
 		$sForm = $line[1];
-	}
-	else
-	{
-		$sForm = "";
-	}
-	$sForm = $line[1];
-	$sForm =~ s/\s+//g;	
-	if ($uForm ne "")
-	{	
-		push(@columnNames, $uForm);					
-		$uForm =~ s/\+//g;
-		$col = "";
-		for (my $i = 0; $i < scalar(@matches); $i++)
-		{
-			$match = $matches[$i];
-			$replace = "\"$replaces[$i]\"";
-			if ($uForm =~ m/$match/)
+		$sForm =~ s/\s+//g;	
+		if ($uForm ne "")
+		{	
+			push(@columnNames, $uForm);					
+			$uForm =~ s/\+//g;
+			$col = "";
+			for (my $i = 0; $i < scalar(@matches); $i++)
 			{
-				$uForm =~ s/$matches[$i]/$replace/gee;
-				$col = $col . $uForm . "\n";
+				$match = $matches[$i];
+				$replace = "\"$replaces[$i]\"";
+				if ($uForm =~ m/$match/)
+				{
+					$uForm =~ s/$matches[$i]/$replace/gee;
+					$col = $col . $uForm . "\n";
+				}
+				else
+				{
+					$col = $col . "-\n";
+				}			
 			}
-			else
+			if (($uForm ne $sForm) && ($sForm ne ""))
 			{
-				$col = $col . "-\n";
-			}			
+				$uForm = "*$uForm";
+			}
+			push(@surfaceForms, $uForm);
+			push(@attestedForms, $sForm);
+			push(@outputColumns, $col);
 		}
-		if (($uForm ne $sForm) && ($sForm ne ""))
-		{
-			$uForm = "*$uForm";
-		}
-		push(@surfaceForms, $uForm);
-		push(@attestedForms, $sForm);
-		push(@outputColumns, $col);
 	}
 }
 close (TEST);
