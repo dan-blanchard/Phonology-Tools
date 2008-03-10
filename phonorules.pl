@@ -33,6 +33,7 @@ my $rule;
 my $ruleFile = $ARGV[0];
 my $testFile = $ARGV[1];
 my $match;
+my $phoneReplacing;
 my $replace;
 my $uForm;
 my $sForm;
@@ -67,8 +68,8 @@ while (<RULES>)
 		if ($rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/)			
 		{
 			no warnings;
-			$match = "($3)$1($4)";
-			$replace = "\$1$2\$2";
+			$match = "($3)($1)($4)";
+			$replace = "\$1$2\$3";
 			$match =~ s/∅//g; # insertions
 			if ($opt_f)
 			{
@@ -135,19 +136,14 @@ while (<TEST>)
 			for (my $i = 0; $i < scalar(@matches); $i++)
 			{
 				$match = $matches[$i];
-				$replace = "\"$replaces[$i]\"";
 				if ($uForm =~ m/$match/)
 				{
-					if ($replaces[$i] =~ m/\[(\X+)\]/)
-					{					
-						# # The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
-						# $uForm =~ s{$replace}
-						# 			{$featureChart->adjustPhoneFeatures($2,split(/,/,$replaces[$i]))}ge;
-					}											
-					else
-					{
-						$uForm =~ s/$match/$replace/gee;						
-					}
+					$phoneReplacing = $2;
+					# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
+					$replaces[$i] =~ s{\[(\X+)\]}
+										{$featureChart->adjustPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;
+					$replace = "\"$replaces[$i]\"";
+					$uForm =~ s/$match/$replace/gee;						
 					$col = $col . $uForm . "\n";
 				}
 				else
