@@ -41,10 +41,19 @@ sub read_file
 			$self->{'outputTable'}->addRow(@line);
 			for (my $i = 1; $i < scalar(@line); $i++)
 			{
-				$self->{'phonesToFeatures'}{$line[0]}{$self->{'features'}[$i-1]} = $line[$i];
 				if ($line[$i] ne "0")
 				{
 					$featureKey = $line[$i] . @{$self->{'features'}}[$i-1]; # Stores feature value as +feature or -feature
+					# Maps phonemes to features
+					if (exists($self->{'phonesToFeatures'}{$line[0]}))
+					{
+						$self->{'phonesToFeatures'}{$line[0]}->insert($featureKey);
+					}
+					else
+					{
+						$self->{'phonesToFeatures'}{$line[0]} = Set::Scalar->new($featureKey);						
+					}
+					# Maps features to phonemes
 					if (exists($self->{'featuresToPhones'}{$featureKey}))
 					{
 						$self->{'featuresToPhones'}{$featureKey}->insert($line[0]);
@@ -97,17 +106,24 @@ sub phonesForFeatures
 		}
 		else
 		{
-			print "ERROR:\tUnknown feature '$featureList[$i]'\n";
+			print STDERR "ERROR:\tUnknown feature '$featureList[$i]'\n";
 			exit(0);
 		}
 	}
 	if ($featureSet->size == 0)
 	{
-		print "ERROR: There are no segments in your feature chart that meet the specified criteria.\n";
+		print STDERR "ERROR: There are no phones in your feature chart that meet the specified criteria [" . $featureList[0];
+		shift(@featureList);
+		foreach my $feature (@featureList)
+		{
+			print STDERR ", $feature";
+		}
+		print STDERR "]\n";
 		exit(0);
 	}
 	return $featureSet->members();
 }
+
 
 
 1;
