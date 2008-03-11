@@ -44,7 +44,7 @@ if ($opt_f)
 {
 	$featureChart = FeatureChart->new();
 	$featureChart->read_file($opt_f);
-	print $featureChart;	
+	# print $featureChart;	
 }
 
 # Setup Unicode input and output
@@ -55,6 +55,7 @@ binmode STDERR, ":utf8";
 # Read rule file
 open RULES, $ruleFile;
 binmode RULES, ":utf8";
+my $temp;
 while (<RULES>)
 {
 	chomp;
@@ -74,10 +75,17 @@ while (<RULES>)
 			{
 				if ($match =~ m/\[(\X+)\]/)
 				{					
+					$temp = $match;
 					# The mess below converts features to disjunctions of phones that match those features
-					$match =~ s{\[([^\[]+)\]}
+					$temp =~ s{\[([^\[]+)\]}
 								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
 				}							
+				if ($replace =~ m/\[(\X+)\]/)
+				{
+					$temp = $replace;
+					$temp =~ s{\[([^\[]+)\]}
+								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+				}
 			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
@@ -137,13 +145,25 @@ while (<TEST>)
 				$match = $matches[$i];
 				# print "Match: $match\n";
 				# print "Replace: $replaces[$i]\n";
+				if ($opt_f)
+				{
+					# The mess below converts features to disjunctions of phones that match those features
+					$match =~ s{\[([^\[]+)\]}
+								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+				}
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
 					# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 					my $tempReplace = $replaces[$i];
-					$tempReplace =~ s{\[(\X+)\]}
-										{$featureChart->adjustPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;
+					if ($opt_f)
+					{
+						$tempReplace =~ s{\[(\X+)\]}
+											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;						
+					}
+					
+					# print "Phone being replaced: $phoneReplacing\n";
+					# print "Altered replace: $tempReplace\n";
 					$replace = "\"$tempReplace\"";
 					$uForm =~ s/$match/$replace/gee;						
 					$col = $col . $uForm . "\n";
@@ -170,4 +190,8 @@ $outputTable->setCols(@columnNames);
 $outputTable->addRow(@outputColumns);
 $outputTable->addRow(@surfaceForms);
 $outputTable->addRow(@attestedForms);
+if ($opt_f)
+{
+	print $featureChart;
+}
 print "\n$outputTable\n";
