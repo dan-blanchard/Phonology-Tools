@@ -86,6 +86,9 @@ while (<RULES>)
 					$temp =~ s{\[([^\[]+)\]}
 								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
 				}
+				$match =~ s/(\]\X+)\+(\[\X+)/$1\\\+$2/g;	# morpheme boundaries with features (middle)
+				$match =~ s/^(\X+)\+(\[\X+)/$1\\\+$2/g;	    # morpheme boundaries with features (beginning)
+				$match =~ s/(\]\X*)\+$/$1\\\+$2/g;	    # morpheme boundaries with features (end)			
 			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
@@ -161,7 +164,6 @@ while (<TEST>)
 						$tempReplace =~ s{\[(\X+)\]}
 											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;						
 					}
-					
 					# print "Phone being replaced: $phoneReplacing\n";
 					# print "Altered replace: $tempReplace\n";
 					$replace = "\"$tempReplace\"";
