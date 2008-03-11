@@ -12,8 +12,8 @@ use strict;
 
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
-my $BAD_LEFT = "〖";
-my $BAD_RIGHT = "〗";
+use constant BAD_LEFT => '⟪';
+use constant BAD_RIGHT => '⟫';
 
 # Constructor
 sub new 
@@ -25,13 +25,48 @@ sub new
 	$self->{'featuresToPhones'} = ();
 	$self->{'features'} = [];
 	$self->{'outputTable'} = Text::ASCIITable->new({headingText => 'Feature Chart' });
-	
+	$self->{'badFeatureCount'} = 0;
 	# Sets up pretty printing of feature sets
 	my $class_callback = sub { "[" . join(", ",sort $_[0]->elements) . "]" };
 	Set::Scalar->as_string_callback($class_callback);
 	
 	bless($self, $class);
 	return($self);
+}
+
+sub addLine
+{
+	my $self = shift;
+	my @line = @_;
+	my $featureKey = "";
+	$self->{'outputTable'}->addRow(@line);
+	# print "\nLine: @line\n";
+	for (my $i = 1; $i < scalar(@line); $i++)
+	{
+		if ($line[$i] ne "0")
+		{
+			$featureKey = $line[$i] . @{$self->{'features'}}[$i-1]; # Stores feature value as +feature or -feature
+			# print "\nFeature key: $featureKey\n";
+			# Map phonemes to features
+			if (exists($self->{'phonesToFeatures'}{$line[0]}))
+			{
+				$self->{'phonesToFeatures'}{$line[0]}->insert($featureKey);
+			}
+			else
+			{
+				$self->{'phonesToFeatures'}{$line[0]} = Set::Scalar->new($featureKey);						
+			}
+			# Map features to phonemes
+			if (exists($self->{'featuresToPhones'}{$featureKey}))
+			{
+				$self->{'featuresToPhones'}{$featureKey}->insert($line[0]);
+			}					
+			else
+			{
+				$self->{'featuresToPhones'}{$featureKey} = Set::Scalar->new($line[0]);
+			}
+		}
+	}	
 }
 
 sub read_file 
@@ -48,32 +83,7 @@ sub read_file
 		@line = split(/\t/);	
 		if (!$first)
 		{
-			$self->{'outputTable'}->addRow(@line);
-			for (my $i = 1; $i < scalar(@line); $i++)
-			{
-				if ($line[$i] ne "0")
-				{
-					$featureKey = $line[$i] . @{$self->{'features'}}[$i-1]; # Stores feature value as +feature or -feature
-					# Map phonemes to features
-					if (exists($self->{'phonesToFeatures'}{$line[0]}))
-					{
-						$self->{'phonesToFeatures'}{$line[0]}->insert($featureKey);
-					}
-					else
-					{
-						$self->{'phonesToFeatures'}{$line[0]} = Set::Scalar->new($featureKey);						
-					}
-					# Map features to phonemes
-					if (exists($self->{'featuresToPhones'}{$featureKey}))
-					{
-						$self->{'featuresToPhones'}{$featureKey}->insert($line[0]);
-					}					
-					else
-					{
-						$self->{'featuresToPhones'}{$featureKey} = Set::Scalar->new($line[0]);
-					}
-				}
-			}
+			$self->addLine(@line);
 		}
 		else
 		{
@@ -123,14 +133,36 @@ sub phonesForFeatures
 	}
 	if ($featureSet->size == 0)
 	{
-		print STDERR "ERROR: There are no phones in your feature chart that meet the specified criteria [" . $featureList[0];
+		my $tempPhone = BAD_LEFT . $self->{'badFeatureCount'} . BAD_RIGHT;
+		my @tempList = ();
+		push(@tempList, $tempPhone);
+		my $added;
+		foreach my $possibleFeature (@{$self->{'features'}})
+		{
+			$added = 0;
+			foreach my $feature (@featureList)
+			{
+				if (!$added && (substr($feature,1) eq $possibleFeature))
+				{
+					push(@tempList, substr($feature,0,1));
+					$added = 1;
+				}
+			}
+			if (!$added)
+			{
+				push(@tempList, "0");
+			}
+		}
+		$self->{'badFeatureCount'}++;
+		$self->addLine(@tempList);
+		print STDERR "WARNING: There are no phones in your feature chart that match the bundle [" . $featureList[0];
 		shift(@featureList);
 		foreach my $feature (@featureList)
 		{
 			print STDERR ", $feature";
 		}
-		print STDERR "]\n";
-		$featureSet->insert("■");
+		print STDERR "], " . $tempPhone . " represents this feature bundle in the output table.\n";
+		$featureSet->insert($tempPhone);
 		# exit(0);
 	}
 	return $featureSet;
@@ -156,7 +188,7 @@ sub featuresForPhone
 	}
 }
 
-sub adjustPhoneFeatures
+sub unifyPhoneFeatures
 {
 	my $self = shift;
 	my $phone = shift;
