@@ -35,6 +35,7 @@ my $match;
 my $phoneReplacing;
 my $replace;
 my $uForm;
+my $tempForm;
 my $sForm;
 my @line;
 my $featureChart;
@@ -90,6 +91,10 @@ while (<RULES>)
 				$match =~ s/^(\X+)\+(\[\X+)/$1\\\+$2/g;	    # morpheme boundaries with features (beginning)
 				$match =~ s/(\]\X*)\+$/$1\\\+$2/g;	    # morpheme boundaries with features (end)			
 			}
+			else
+			{
+				$match =~ s/\+/\\\+/g;				
+			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
 			$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
@@ -141,13 +146,18 @@ while (<TEST>)
 		if ($uForm ne "")
 		{	
 			push(@columnNames, $uForm);					
-			$uForm =~ s/\+//g;
 			$col = "";
 			for (my $i = 0; $i < scalar(@matches); $i++)
 			{
+				$tempForm = $uForm;
 				$match = $matches[$i];
+				if ($match !~ m/\\\+/)
+				{
+					$uForm =~ s/\+//g;		
+				}
 				# print "Match: $match\n";
 				# print "Replace: $replaces[$i]\n";
+				# print "uForm: $uForm\n";
 				if ($opt_f)
 				{
 					# The mess below converts features to disjunctions of phones that match those features
@@ -157,10 +167,10 @@ while (<TEST>)
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
-					# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
+						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 						$tempReplace =~ s{\[(\X+)\]}
 											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;						
 					}
