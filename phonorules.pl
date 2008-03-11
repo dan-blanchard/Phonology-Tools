@@ -17,6 +17,8 @@ use Getopt::Std;
 use warnings;
 use FeatureChart;
 
+my $wordBoundary = "#";
+my $morphemeBoundary ="+";
 our ($opt_f);
 getopts('f:');
 my @matches = ();
@@ -87,13 +89,14 @@ while (<RULES>)
 					$temp =~ s{\[([^\[]+)\]}
 								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
 				}
-				$match =~ s/(\]\X+)\+(\[\X+)/$1\\\+$2/g;	# morpheme boundaries with features (middle)
-				$match =~ s/^(\X+)\+(\[\X+)/$1\\\+$2/g;	    # morpheme boundaries with features (beginning)
-				$match =~ s/(\]\X*)\+$/$1\\\+$2/g;	    # morpheme boundaries with features (end)			
+				$match =~ s/(\]\X+)\Q$morphemeBoundary\E(\[\X+)/$1\\$morphemeBoundary$2/g;	# morpheme boundaries with features (middle)
+				$match =~ s/^(\X+)\Q$morphemeBoundary\E(\[\X+)/$1\\$morphemeBoundary$2/g;	    # morpheme boundaries with features (beginning)
+				$match =~ s/(\]\X*)\Q$morphemeBoundary\E$/$1\\$morphemeBoundary$2/g;	    	# morpheme boundaries with features (end)
 			}
 			else
 			{
-				$match =~ s/\+/\\\+/g;				
+				$match =~ s/\Q$morphemeBoundary\E/\\$morphemeBoundary/g;
+				$match =~ s/([\+\[\]\-])/\\$1/g;
 			}
 			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/#/\$/g; # word boundary at end
@@ -153,7 +156,7 @@ while (<TEST>)
 				$match = $matches[$i];
 				if ($match !~ m/\\\+/)
 				{
-					$uForm =~ s/\+//g;		
+					$uForm =~ s/\Q$morphemeBoundary\E//g;		
 				}
 				# print "Match: $match\n";
 				# print "Replace: $replaces[$i]\n";
