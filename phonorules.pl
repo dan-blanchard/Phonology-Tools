@@ -33,6 +33,10 @@ Readonly::Scalar my $ARROW_UNICODE => '➔';
 Readonly::Scalar my $SLASH_ASCII => '/';
 Readonly::Scalar my $SLASH_UNICODE => '╱';
 Readonly::Scalar my $PLACE_MARKER => '_';
+Readonly::Scalar my $LEFT_FEATURE_BUNDLE => '[';
+Readonly::Scalar my $RIGHT_FEATURE_BUNDLE => ']'; 
+Readonly::Scalar my $DELIMITER_FEATURE_BUNDLE => ',';
+Readonly::Scalar my $EMPTY_CELL => '-';
 
 # Command-line arguments
 our ($opt_f);
@@ -99,8 +103,8 @@ while (<RULES>)
 		{
 			no warnings;
 			push(@originalRules,$rule);
-			$rule =~ s/\(/\(\?:/g; # Properly formats optional sections of rules
-			$rule =~ s/\)/\)\?/g;
+			$rule =~ s/\Q$LEFT_OPTIONAL\E/\(\?:/g; # Properly formats optional sections of rules
+			$rule =~ s/\Q$RIGHT_OPTIONAL\E/\)\?/g;
 			$rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/; # Have to do this after optional rule fixing
 			$match = "($3)($1)($4)";
 			$replace = "\$1$2\$3";
@@ -108,18 +112,18 @@ while (<RULES>)
 			print "Match: $match\n";
 			if ($opt_f)
 			{
-				if ($match =~ m/\[(\X+)\]/)
+				if ($match =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
 				{					
 					$temp = $match;
 					# The mess below converts features to disjunctions of phones that match those features
-					$temp =~ s{\[([^\[]+)\]}
-								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 				}							
 				if ($replace =~ m/\[(\X+)\]/)
 				{
 					$temp = $replace;
-					$temp =~ s{\[([^\[]+)\]}
-								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 				}
 				$match =~ s/(\]\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
 				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
@@ -185,7 +189,7 @@ while (<TEST>)
 			{
 				$tempForm = $uForm;
 				$match = $matches[$i];
-				if ($match !~ m/\\\+/)
+				if ($match !~ m/\\\Q$MORPHEME_BOUNDARY\E/)
 				{
 					$uForm =~ s/\Q$MORPHEME_BOUNDARY\E//g;		
 				}
@@ -195,8 +199,8 @@ while (<TEST>)
 				if ($opt_f)
 				{
 					# The mess below converts features to disjunctions of phones that match those features
-					$match =~ s{\[([^\[]+)\]}
-								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
+					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 				}
 				if ($uForm =~ m/$match/)
 				{
@@ -205,8 +209,8 @@ while (<TEST>)
 					if ($opt_f)
 					{
 						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
-						$tempReplace =~ s{\[(\X+)\]}
-											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/,/,$1))}ge;						
+						$tempReplace =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;						
 					}
 					# print "Phone being replaced: $phoneReplacing\n";
 					# print "Altered replace: $tempReplace\n";
@@ -216,7 +220,7 @@ while (<TEST>)
 				}
 				else
 				{
-					$col = $col . "-\n";
+					$col = $col . "$EMPTY_CELL\n";
 				}			
 			}
 			if (($uForm ne $sForm) && ($sForm ne ""))
