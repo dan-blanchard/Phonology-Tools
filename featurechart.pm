@@ -19,14 +19,18 @@ use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 # Constructor
 sub new 
 {
+	# Perl constructor stuff
 	my $class = shift;
 	$class = ref $class if ref $class;
 	my $self = {};
+	
+	# Setup class variables
 	$self->{'phonesToFeatures'} = ();
 	$self->{'featuresToPhones'} = ();
 	$self->{'features'} = [];
 	$self->{'outputTable'} = Text::ASCIITable->new({headingText => 'Feature Chart' });
 	$self->{'badFeatureCount'} = 0;
+	
 	# Sets up pretty printing of feature sets
 	my $class_callback = sub { "[" . join(", ",sort $_[0]->elements) . "]" };
 	Set::Scalar->as_string_callback($class_callback);
