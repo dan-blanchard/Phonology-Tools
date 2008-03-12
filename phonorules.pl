@@ -140,8 +140,8 @@ while (<RULES>)
 			# More Pretty-Printing Stuff #		
 			$originalRules[-1] =~ s/\Q$ARROW_UNICODE\E/ $ARROW_UNICODE /g;	
 			$originalRules[-1] =~ s/\Q$ARROW_ASCII\E/ $ARROW_UNICODE /g;
-			$originalRules[-1] =~ s/╱/ ╱  /g;
-			$originalRules[-1] =~ s/\// ╱  /g;
+			$originalRules[-1] =~ s/\Q$SLASH_UNICODE\E/ $SLASH_UNICODE  /g;
+			$originalRules[-1] =~ s/\Q$SLASH_ASCII\E/ $SLASH_UNICODE  /g;
 			push(@matches,$match);
 			push(@replaces,$replace);
 		}
