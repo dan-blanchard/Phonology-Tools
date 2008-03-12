@@ -1,2 +1,5 @@
 If using fixed-width font, need to use Courier New (for unknown reason)
-Prereq:  Text::ASCIITable
+Prereqs:  Text::ASCIITable & Set::Scalar
+Feature values must be single characters
+Reserved characters: lowercase greek, [], +-, #, (), <>
+
