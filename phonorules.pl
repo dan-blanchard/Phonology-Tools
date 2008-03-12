@@ -108,7 +108,7 @@ while (<RULES>)
 			$rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/; # Have to do this after optional rule fixing
 			$match = "($3)($1)($4)";
 			$replace = "\$1$2\$3";
-			$match =~ s/∅//g; # insertions
+			$match =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
 			print "Match: $match\n";
 			if ($opt_f)
 			{
@@ -119,20 +119,20 @@ while (<RULES>)
 					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 				}							
-				if ($replace =~ m/\[(\X+)\]/)
+				if ($replace =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
 				{
 					$temp = $replace;
 					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 				}
-				$match =~ s/(\]\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
-				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
-				$match =~ s/(\]\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
+				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
+				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
+				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
 			}
 			else
 			{
 				$match =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
-				$match =~ s/([\+\[\]\-])/\\$1/g;
+				$match =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
 			}
 			$match =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 			$match =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
