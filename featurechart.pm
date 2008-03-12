@@ -16,9 +16,6 @@ Readonly::Scalar my $BAD_RIGHT => '⟫';
 
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
-# use constant BAD_LEFT => '⟪';
-# use constant BAD_RIGHT => '⟫';
-
 # Constructor
 sub new 
 {
