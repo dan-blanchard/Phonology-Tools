@@ -3,7 +3,7 @@
 # Dan Blanchard
 # Phonological Rule Processor
 
-# Usage: ./phonorules [-f <FEATURE CHART FILE>] <RULE FILE> <TEST FILE>
+# Usage: ./phonorules [-f <FEATURE CHART FILE>] [-s <SYMBOL TABLE FILE>] <RULE FILE> <TEST FILE>
 
 # TODO "n or more" repetitions
 # TODO symbols
@@ -21,6 +21,7 @@ use Readonly;
 # Special Characters
 Readonly::Scalar my $WORD_BOUNDARY => '#';
 Readonly::Scalar my $MORPHEME_BOUNDARY => '+';
+Readonly::Scalar my $PHONEME_BOUNDARY => ' ';
 Readonly::Scalar my $LEFT_OPTIONAL => '(';
 Readonly::Scalar my $RIGHT_OPTIONAL => ')';
 Readonly::Scalar my $LEFT_DISJUNCTIVE => '{';
@@ -46,6 +47,7 @@ getopts('f:');
 my @matches = ();
 my @replaces = ();
 my @originalRules = ();
+my @contextFreeMatches = ();
 my @outputColumns = ();
 my @columnNames = ();
 my @surfaceForms = ( "Surface Forms" );
@@ -71,6 +73,26 @@ sub IsGreekLower
 +utf8::Greek
 &utf8::LowercaseLetter
 END
+}
+
+sub MatchStringToRegularExpression
+{
+	my $matchString = shift;
+	if ($opt_f)
+	{
+		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
+		$matchString =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
+		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
+		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY/g;
+	}
+	else
+	{
+		$matchString =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
+		$matchString =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
+	}
+	$matchString =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
+	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
+	return $matchString;
 }
 
 # Check for feature chart file
@@ -99,32 +121,48 @@ while (<RULES>)
 	{	
 		$rule =~ s/\s+//g;	# remove extra whitespace
 		$rule =~ s/\Q$EMPTY_SET_ASCII\E/$EMPTY_SET_UNICODE/g;	# pretty-print empty sets
-		if ($rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/)			
+		if ($rule =~ m/^(\X+)?(?:(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?)?$/)			
 		{
 			no warnings;
 			push(@originalRules,$rule);
 			$rule =~ s/\Q$LEFT_OPTIONAL\E/\(\?:/g; # Properly formats optional sections of rules
 			$rule =~ s/\Q$RIGHT_OPTIONAL\E/\)\?/g;
-			$rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/; # Have to do this after optional rule fixing
-			$match = "($3)($1)($4)";
-			$replace = "\$1$2\$3";
+			# Have to do this after optional rule fixing
+			if ($rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/)
+			{
+				$match = "($3)($1)($4)";
+				$replace = "\$1$2\$3";
+				push(@contextFreeMatches, $1);
+			}
+			elsif ($rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?$/) # Match transformational rules without /_ section
+			{
+				$match = "()($1)()";
+				$replace = "\$1$2\$3";				
+				push(@contextFreeMatches, $1);
+			}
+			else
+			{
+				print STDERR "ERROR: Your rule has managed to get to a part of this program that should not be possible.  The rule is $rule\n";
+				exit(0);
+			}
 			$match =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
-			print "Match: $match\n";
+			# print "Match: $match\n";
 			if ($opt_f)
 			{
-				if ($match =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
-				{					
-					$temp = $match;
-					# The mess below converts features to disjunctions of phones that match those features
-					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
-								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
-				}							
-				if ($replace =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
-				{
-					$temp = $replace;
-					$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
-								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
-				}
+				# Do not know if this section is necessary... it is supposed to pre-populate chart with missing bundles in rules
+				# if ($match =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
+				# {					
+				# 	$temp = $match;
+				# 	# The mess below converts features to disjunctions of phones that match those features
+				# 	$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+				# 				{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
+				# }							
+				# if ($replace =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
+				# {
+				# 	$temp = $replace;
+				# 	$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+				# 				{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
+				# }
 				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
 				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
 				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
@@ -201,18 +239,24 @@ while (<TEST>)
 					# The mess below converts features to disjunctions of phones that match those features
 					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
+					# print "Feature match: $match\n";
 				}
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
+					# print "Phone being replaced: $phoneReplacing\n";
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
+						if ($contextFreeMatches[$i] =~ m/\Q$LEFT_FEATURE_BUNDLE\E/)
+						{
+							
+						}
 						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 						$tempReplace =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;						
+						# print "Feature replace: $tempReplace\n";
 					}
-					# print "Phone being replaced: $phoneReplacing\n";
 					# print "Altered replace: $tempReplace\n";
 					$replace = "\"$tempReplace\"";
 					$uForm =~ s/$match/$replace/gee;						
