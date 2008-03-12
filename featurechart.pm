@@ -9,11 +9,15 @@ use Text::ASCIITable;
 use Set::Scalar;
 use warnings;
 use strict;
+use Readonly;
+
+Readonly::Scalar my $BAD_LEFT => '⟪';
+Readonly::Scalar my $BAD_RIGHT => '⟫';
 
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
-use constant BAD_LEFT => '⟪';
-use constant BAD_RIGHT => '⟫';
+# use constant BAD_LEFT => '⟪';
+# use constant BAD_RIGHT => '⟫';
 
 # Constructor
 sub new 
@@ -128,12 +132,12 @@ sub phonesForFeatures
 		else
 		{
 			print STDERR "ERROR:\tUnknown feature '$featureList[$i]'\n";
-			# exit(0);
+			exit(0);
 		}
 	}
 	if ($featureSet->size == 0)
 	{
-		my $tempPhone = BAD_LEFT . $self->{'badFeatureCount'} . BAD_RIGHT;
+		my $tempPhone = $BAD_LEFT . $self->{'badFeatureCount'} . $BAD_RIGHT;
 		my @tempList = ();
 		push(@tempList, $tempPhone);
 		my $added;

@@ -16,11 +16,29 @@ use Text::ASCIITable;
 use Getopt::Std;
 use warnings;
 use FeatureChart;
+use Readonly;
 
-my $wordBoundary = "#";
-my $morphemeBoundary ="+";
+# Special Characters
+Readonly::Scalar my $WORD_BOUNDARY => '#';
+Readonly::Scalar my $MORPHEME_BOUNDARY => '+';
+Readonly::Scalar my $LEFT_OPTIONAL => '(';
+Readonly::Scalar my $RIGHT_OPTIONAL => ')';
+Readonly::Scalar my $LEFT_DISJUNCTIVE => '{';
+Readonly::Scalar my $RIGHT_DISJUNCTIVE => '}'; 
+Readonly::Scalar my $DELIMITER_DISJUNCTIVE => ',';
+Readonly::Scalar my $EMPTY_SET_ASCII => '0';
+Readonly::Scalar my $EMPTY_SET_UNICODE => '∅';
+Readonly::Scalar my $ARROW_ASCII => "->";
+Readonly::Scalar my $ARROW_UNICODE => '➔';
+Readonly::Scalar my $SLASH_ASCII => '/';
+Readonly::Scalar my $SLASH_UNICODE => '╱';
+Readonly::Scalar my $PLACE_MARKER => '_';
+
+# Command-line arguments
 our ($opt_f);
 getopts('f:');
+
+# Global variables
 my @matches = ();
 my @replaces = ();
 my @originalRules = ();
@@ -76,14 +94,14 @@ while (<RULES>)
 	if ($rule ne "")
 	{	
 		$rule =~ s/\s+//g;	# remove extra whitespace
-		$rule =~ s/0/∅/g;	# pretty-print empty sets
-		if ($rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/)			
+		$rule =~ s/\Q$EMPTY_SET_ASCII\E/$EMPTY_SET_UNICODE/g;	# pretty-print empty sets
+		if ($rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/)			
 		{
 			no warnings;
 			push(@originalRules,$rule);
 			$rule =~ s/\(/\(\?:/g; # Properly formats optional sections of rules
 			$rule =~ s/\)/\)\?/g;
-			$rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/; # Have to do this after optinal rule fixing
+			$rule =~ m/^(\X+)?(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?$/; # Have to do this after optional rule fixing
 			$match = "($3)($1)($4)";
 			$replace = "\$1$2\$3";
 			$match =~ s/∅//g; # insertions
@@ -103,23 +121,23 @@ while (<RULES>)
 					$temp =~ s{\[([^\[]+)\]}
 								{$featureChart->phoneDisjuctionForFeatures(split(/,/,$1))}eg;
 				}
-				$match =~ s/(\]\X+)\Q$morphemeBoundary\E(\[\X+)/$1\\$morphemeBoundary$2/g;	# morpheme boundaries with features (middle)
-				$match =~ s/^(\X+)\Q$morphemeBoundary\E(\[\X+)/$1\\$morphemeBoundary$2/g;	    # morpheme boundaries with features (beginning)
-				$match =~ s/(\]\X*)\Q$morphemeBoundary\E$/$1\\$morphemeBoundary$2/g;	    	# morpheme boundaries with features (end)
+				$match =~ s/(\]\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
+				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\[\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
+				$match =~ s/(\]\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
 			}
 			else
 			{
-				$match =~ s/\Q$morphemeBoundary\E/\\$morphemeBoundary/g;
+				$match =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
 				$match =~ s/([\+\[\]\-])/\\$1/g;
 			}
-			$match =~ s/\(#(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
-			$match =~ s/#/\$/g; # word boundary at end
-			$replace =~ s/∅//g;	# don't actually want empty sets in replacement string
+			$match =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
+			$match =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
+			$replace =~ s/\Q$EMPTY_SET_UNICODE\E//g;	# don't actually want empty sets in replacement string
 			# More Pretty-Printing Stuff #		
-			$rule =~ s/➔/ ➔ /g;	
-			$rule =~ s/->/ ➔ /g;
-			$rule =~ s/╱/ ╱  /g;
-			$rule =~ s/\// ╱  /g;
+			$originalRules[-1] =~ s/\Q$ARROW_UNICODE\E/ $ARROW_UNICODE /g;	
+			$originalRules[-1] =~ s/\Q$ARROW_ASCII\E/ $ARROW_UNICODE /g;
+			$originalRules[-1] =~ s/╱/ ╱  /g;
+			$originalRules[-1] =~ s/\// ╱  /g;
 			push(@matches,$match);
 			push(@replaces,$replace);
 		}
@@ -169,7 +187,7 @@ while (<TEST>)
 				$match = $matches[$i];
 				if ($match !~ m/\\\+/)
 				{
-					$uForm =~ s/\Q$morphemeBoundary\E//g;		
+					$uForm =~ s/\Q$MORPHEME_BOUNDARY\E//g;		
 				}
 				# print "Match: $match\n";
 				# print "Replace: $replaces[$i]\n";

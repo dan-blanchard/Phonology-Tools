@@ -1,5 +1,5 @@
 If using fixed-width font, need to use Courier New (for unknown reason)
-Prereqs:  Text::ASCIITable & Set::Scalar
+Prereqs:  Text::ASCIITable, Set::Scalar, Readonly::XS
 Feature values must be single characters
 Reserved characters: lowercase greek, [], +-, #, (), <>
 
