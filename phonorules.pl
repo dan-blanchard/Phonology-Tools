@@ -42,6 +42,15 @@ my $sForm;
 my @line;
 my $featureChart;
 
+# Tests for lowercase greek letters, such as those used as feature-value variables
+sub IsGreekLower 
+{
+	return <<'END';
++utf8::Greek
+&utf8::LowercaseLetter
+END
+}
+
 # Check for feature chart file
 if ($opt_f)
 {
@@ -71,9 +80,14 @@ while (<RULES>)
 		if ($rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/)			
 		{
 			no warnings;
+			push(@originalRules,$rule);
+			$rule =~ s/\(/\(\?:/g; # Properly formats optional sections of rules
+			$rule =~ s/\)/\)\?/g;
+			$rule =~ m/^(\X+)?(?:(?:->)|➔)(\X+)?(?:(?:\/)|(?:╱))(\X+)?_(\X+)?$/; # Have to do this after optinal rule fixing
 			$match = "($3)($1)($4)";
 			$replace = "\$1$2\$3";
 			$match =~ s/∅//g; # insertions
+			print "Match: $match\n";
 			if ($opt_f)
 			{
 				if ($match =~ m/\[(\X+)\]/)
@@ -108,7 +122,6 @@ while (<RULES>)
 			$rule =~ s/\// ╱  /g;
 			push(@matches,$match);
 			push(@replaces,$replace);
-			push(@originalRules,$rule);
 		}
 	}
 }
