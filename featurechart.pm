@@ -11,8 +11,8 @@ use warnings;
 use strict;
 use Readonly;
 
-Readonly::Scalar my $BAD_LEFT => '⟪';
-Readonly::Scalar my $BAD_RIGHT => '⟫';
+Readonly::Scalar our $BAD_LEFT => '⟪';
+Readonly::Scalar our $BAD_RIGHT => '⟫';
 
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
@@ -30,7 +30,6 @@ sub new
 	$self->{'features'} = [];
 	$self->{'outputTable'} = Text::ASCIITable->new({headingText => 'Feature Chart' });
 	$self->{'badFeatureCount'} = 0;
-	
 	# Sets up pretty printing of feature sets
 	my $class_callback = sub { "[" . join(", ",sort $_[0]->elements) . "]" };
 	Set::Scalar->as_string_callback($class_callback);
