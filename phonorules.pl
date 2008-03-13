@@ -8,6 +8,20 @@
 # TODO "n or more" repetitions
 # TODO symbols
 # TODO add indexing to feature bundles
+
+# Rule form: (A)->(B)(/(C)_(D))
+# Perl form: s/(C)?(A)?(D)?/$1B$3/g
+# SPE		vs		Perl
+# ()				(?:)
+# α					\g{α} (with 5.10) need to count backreferences with 5.8
+# {a,b,...}			(?:a|b|...)
+# a^10				a{10,}
+# ()*				()*
+# <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
+# AB -> C						
+
+
+
 use strict;
 use POSIX;
 use utf8;
@@ -38,6 +52,7 @@ Readonly::Scalar my $LEFT_FEATURE_BUNDLE => '[';
 Readonly::Scalar my $RIGHT_FEATURE_BUNDLE => ']'; 
 Readonly::Scalar my $DELIMITER_FEATURE_BUNDLE => ',';
 Readonly::Scalar my $EMPTY_CELL => '-';
+Readonly::Scalar my $ZERO_OR_MORE => '*';
 
 # Command-line arguments
 our ($opt_f, $opt_d, $opt_s);
@@ -296,7 +311,7 @@ while (<TEST>)
 						else
 						{
 							print STDERR "ERROR: Mismatched number of elements on LHS and RHS of arrow in rule $originalRules[$i]\n";
-							# exit(0);
+ 							exit(0);
 						}
 						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 						# print "Feature replace: $tempReplace\n";
