@@ -277,9 +277,9 @@ while (<TEST>)
 					$col = $col . "$EMPTY_CELL\n";
 				}			
 			}
+			$uForm =~ s/$PHONEME_BOUNDARY//g;
 			if (($uForm ne $sForm) && ($sForm ne ""))
 			{
-				$uForm =~ s/$PHONEME_BOUNDARY//g;
 				$uForm = "*$uForm";
 			}
 			push(@surfaceForms, $uForm);
