@@ -1,4 +1,4 @@
 % rules for ilokno-test.tab
 0->ʔ/[+low]_[+syl]
 [+syl]->[-syl]/_[+syl]
-[-syl,-high]->[+high]/_
+[-syl,-high]->[+high]
