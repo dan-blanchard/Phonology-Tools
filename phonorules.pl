@@ -18,7 +18,8 @@
 # a^10				a{10,}
 # ()*				()*
 # <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
-# AB -> C						
+# + in rule			+? in between every character of rules that don't contain +
+# #					$ at end and ^ at beginning
 
 
 
