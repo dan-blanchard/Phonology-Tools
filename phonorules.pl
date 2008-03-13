@@ -3,7 +3,7 @@
 # Dan Blanchard
 # Phonological Rule Processor
 
-# Usage: ./phonorules [-f <FEATURE CHART FILE>] [-s <SYMBOL TABLE FILE>] <RULE FILE> <TEST FILE>
+# Usage: ./phonorules [-d] [-f <FEATURE CHART FILE>] [-s <SYMBOL TABLE FILE>] <RULE FILE> <TEST FILE>
 
 # TODO "n or more" repetitions
 # TODO symbols
@@ -40,8 +40,13 @@ Readonly::Scalar my $DELIMITER_FEATURE_BUNDLE => ',';
 Readonly::Scalar my $EMPTY_CELL => '-';
 
 # Command-line arguments
-our ($opt_f);
-getopts('f:');
+our ($opt_f, $opt_d, $opt_s);
+getopts('df:s:');
+
+# Setup Unicode input and output
+binmode STDOUT, ":utf8";
+binmode STDIN, ":utf8";
+binmode STDERR, ":utf8";
 
 # Global variables
 my @matches = ();
@@ -78,21 +83,41 @@ END
 sub MatchStringToRegularExpression
 {
 	my $matchString = shift;
+	$matchString =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
 	if ($opt_f)
 	{
 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
 		$matchString =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
-		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY/g;
+		if (!$opt_d)
+		{
+			# add phoneme boundary markers between feature bundles and other phonemes	
+			$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)([^)])/$1$PHONEME_BOUNDARY$2/g;	
+			$matchString =~ s/([^\(\Q$PHONEME_BOUNDARY\E])(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g;
+			$matchString =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g;
+			$matchString =~ s/\)\(/)$PHONEME_BOUNDARY?(/g;
+		}
 	}
 	else
 	{
+		if (!$opt_d)
+		{
+			# $matchString =~ s/([^()])([^()])/$1$PHONEME_BOUNDARY$2/g;
+			# $matchString =~ s/\)\(/)$PHONEME_BOUNDARY(/g;
+		}
 		$matchString =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
 		$matchString =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
 	}
 	$matchString =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
 	return $matchString;
+}
+
+sub ReplaceStringToRegularExpression
+{
+	my $replaceString = shift;
+	$replaceString =~ s/\Q$EMPTY_SET_UNICODE\E//g;	# don't actually want empty sets in replacement string
+	return $replaceString;
 }
 
 # Check for feature chart file
@@ -102,11 +127,6 @@ if ($opt_f)
 	$featureChart->read_file($opt_f);
 	# print $featureChart;	
 }
-
-# Setup Unicode input and output
-binmode STDOUT, ":utf8";
-binmode STDIN, ":utf8";
-binmode STDERR, ":utf8";
 
 # Read rule file
 open RULES, $ruleFile;
@@ -119,7 +139,10 @@ while (<RULES>)
 	$rule =~ s/%.*$//;
 	if ($rule ne "")
 	{	
-		$rule =~ s/\s+//g;	# remove extra whitespace
+		if (!$opt_d)
+		{
+			$rule =~ s/\s+//g;	# remove extra whitespace if we're not using digraphemes			
+		}
 		$rule =~ s/\Q$EMPTY_SET_ASCII\E/$EMPTY_SET_UNICODE/g;	# pretty-print empty sets
 		if ($rule =~ m/^(\X+)?(?:(?:(?:\Q$ARROW_ASCII\E)|\Q$ARROW_UNICODE\E)(\X+)?(?:(?:\Q$SLASH_ASCII\E)|(?:\Q$SLASH_UNICODE\E))(\X+)?\Q$PLACE_MARKER\E(\X+)?)?$/)			
 		{
@@ -145,36 +168,10 @@ while (<RULES>)
 				print STDERR "ERROR: Your rule has managed to get to a part of this program that should not be possible.  The rule is $rule\n";
 				exit(0);
 			}
-			$match =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
+			$match = MatchStringToRegularExpression($match);
+			$replace = ReplaceStringToRegularExpression($replace);
 			# print "Match: $match\n";
-			if ($opt_f)
-			{
-				# Do not know if this section is necessary... it is supposed to pre-populate chart with missing bundles in rules
-				# if ($match =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
-				# {					
-				# 	$temp = $match;
-				# 	# The mess below converts features to disjunctions of phones that match those features
-				# 	$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
-				# 				{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
-				# }							
-				# if ($replace =~ m/\Q$LEFT_FEATURE_BUNDLE\E(\X+)\Q$RIGHT_FEATURE_BUNDLE\E/)
-				# {
-				# 	$temp = $replace;
-				# 	$temp =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
-				# 				{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
-				# }
-				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
-				$match =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
-				$match =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
-			}
-			else
-			{
-				$match =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
-				$match =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
-			}
-			$match =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
-			$match =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
-			$replace =~ s/\Q$EMPTY_SET_UNICODE\E//g;	# don't actually want empty sets in replacement string
+			# print "Replace: $replace\n";
 			# More Pretty-Printing Stuff #		
 			$originalRules[-1] =~ s/\Q$ARROW_UNICODE\E/ $ARROW_UNICODE /g;	
 			$originalRules[-1] =~ s/\Q$ARROW_ASCII\E/ $ARROW_UNICODE /g;
@@ -208,7 +205,6 @@ while (<TEST>)
 	{
 		@line = split(/\t/);
 		$uForm = $line[0];
-		$uForm =~ s/\s+//g;	
 		if (scalar(@line) == 2)
 		{
 			$sForm = $line[1];
@@ -218,7 +214,10 @@ while (<TEST>)
 			$sForm = "";
 		}
 		$sForm = $line[1];
-		$sForm =~ s/\s+//g;	
+		if (!$opt_d)
+		{
+			$uForm =~ s/\Q$PHONEME_BOUNDARY\E//g;		# remove spaces if we're not working with digraphemes
+		}
 		if ($uForm ne "")
 		{	
 			push(@columnNames, $uForm);					
@@ -239,7 +238,19 @@ while (<TEST>)
 					# The mess below converts features to disjunctions of phones that match those features
 					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
+					if ($match =~ m/\Q$PHONEME_BOUNDARY\E/)
+					{
+						while ($uForm =~ s/([^()\Q$PHONEME_BOUNDARY\E\Q$FeatureChart::BAD_LEFT\E])([^()\Q$PHONEME_BOUNDARY\E\Q$FeatureChart::BAD_RIGHT\E])/$1$PHONEME_BOUNDARY$2/g)
+						{
+#							print "1: $1\t2:$2\n";							
+						}
+					}
+					else
+					{
+						$uForm =~ s/\Q$PHONEME_BOUNDARY\E//g;
+					}
 					# print "Feature match: $match\n";
+					# print "uForm: $uForm\n";
 				}
 				if ($uForm =~ m/$match/)
 				{
@@ -248,10 +259,8 @@ while (<TEST>)
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
-						if ($contextFreeMatches[$i] =~ m/\Q$LEFT_FEATURE_BUNDLE\E/)
-						{
-							
-						}
+						# add code to split phoneReplacing and replace by phoneme_delimiter, check to see if they have the samme number of elements, and process the phones/bundles one at a time
+						
 						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 						$tempReplace =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;						
@@ -259,7 +268,8 @@ while (<TEST>)
 					}
 					# print "Altered replace: $tempReplace\n";
 					$replace = "\"$tempReplace\"";
-					$uForm =~ s/$match/$replace/gee;						
+					$uForm =~ s/$match/$replace/gee;
+					$uForm =~ s/$PHONEME_BOUNDARY//g;
 					$col = $col . $uForm . "\n";
 				}
 				else
@@ -269,6 +279,7 @@ while (<TEST>)
 			}
 			if (($uForm ne $sForm) && ($sForm ne ""))
 			{
+				$uForm =~ s/$PHONEME_BOUNDARY//g;
 				$uForm = "*$uForm";
 			}
 			push(@surfaceForms, $uForm);
