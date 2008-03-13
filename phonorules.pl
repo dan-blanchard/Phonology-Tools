@@ -7,7 +7,7 @@
 
 # TODO "n or more" repetitions
 # TODO symbols
-
+# TODO add indexing to feature bundles
 use strict;
 use POSIX;
 use utf8;
@@ -239,7 +239,7 @@ while (<TEST>)
 					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 					if ($match =~ m/\Q$PHONEME_BOUNDARY\E/)
-					{
+					{						
 						while ($uForm =~ s/([^()\Q$PHONEME_BOUNDARY\E\Q$FeatureChart::BAD_LEFT\E])([^()\Q$PHONEME_BOUNDARY\E\Q$FeatureChart::BAD_RIGHT\E])/$1$PHONEME_BOUNDARY$2/g)
 						{
 #							print "1: $1\t2:$2\n";							
@@ -259,11 +259,46 @@ while (<TEST>)
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
-						# add code to split phoneReplacing and replace by phoneme_delimiter, check to see if they have the samme number of elements, and process the phones/bundles one at a time
-						
+						# add code to split phoneReplacing and replace by phoneme_delimiter, check to see if they have the same number of elements, and process the phones/bundles one at a time
+						$tempReplace =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)([^)])/$1$PHONEME_BOUNDARY$2/g;	
+						$tempReplace =~ s/([^\(\Q$PHONEME_BOUNDARY\E\$])(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g;
+						$tempReplace =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E\$])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)\$])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g;
+						$tempReplace =~ s/\)\(/)$PHONEME_BOUNDARY?(/g;
+						while ($tempReplace =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E\$])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)\$])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g)
+						{
+							# This loop does all of its work in the condition-checking
+						}
+						my @oldBundles = split(/\Q$PHONEME_BOUNDARY\E/,$phoneReplacing);
+						my @newBundles = split(/\Q$PHONEME_BOUNDARY\E/,$tempReplace);
+						shift(@newBundles);
+						pop(@newBundles);
+						if (scalar(@oldBundles) == scalar(@newBundles))
+						{
+							# print "Counts-old: " . scalar(@oldBundles) . "\tCounts-new: " . scalar(@newBundles) . "\n";
+							for (my $j = 0; $j < scalar(@newBundles); $j++)
+							{
+								$newBundles[$j] =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+														{$featureChart->unifyPhoneFeatures($oldBundles[$j],split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;
+								# print "in loop: $newBundles[$j]\n";
+							}
+							$tempReplace = join($PHONEME_BOUNDARY,@newBundles);
+							$tempReplace = "\$1$PHONEME_BOUNDARY$tempReplace$PHONEME_BOUNDARY\$3";
+						}
+						elsif (scalar(@oldBundles) == 1)
+						{
+							$tempReplace =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+													{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;							
+						}
+						elsif ($tempReplace !~ m/\Q$LEFT_FEATURE_BUNDLE\E/) # might want to add check to see if we're in feature mode here
+						{
+							# Everything's a-okay
+						}
+						else
+						{
+							print STDERR "ERROR: Mismatched number of elements on LHS and RHS of arrow in rule $originalRules[$i]\n";
+							# exit(0);
+						}
 						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
-						$tempReplace =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
-											{$featureChart->unifyPhoneFeatures($phoneReplacing,split(/$DELIMITER_FEATURE_BUNDLE/,$1))}ge;						
 						# print "Feature replace: $tempReplace\n";
 					}
 					# print "Altered replace: $tempReplace\n";
