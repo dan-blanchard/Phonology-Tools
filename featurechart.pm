@@ -44,7 +44,7 @@ sub addLine
 	my @line = @_;
 	my $featureKey = "";
 	$self->{'outputTable'}->addRow(@line);
-	# print "\nLine: @line\n";
+	print "\nLine: @line\n";
 	for (my $i = 1; $i < scalar(@line); $i++)
 	{
 		if ($line[$i] ne "0")
@@ -69,6 +69,10 @@ sub addLine
 			{
 				$self->{'featuresToPhones'}{$featureKey} = Set::Scalar->new($line[0]);
 			}
+		}
+		elsif (!exists($self->{'phonesToFeatures'}{$line[0]}))
+		{
+			$self->{'phonesToFeatures'}{$line[0]} = Set::Scalar->new();						
 		}
 	}	
 }
@@ -175,6 +179,7 @@ sub phonesForFeatures
 sub phoneDisjuctionForFeatures
 {
 	my $self = shift;
+	print "Feature list: @_\n";
 	return "(?:" . join("|",$self->phonesForFeatures(@_)->members) . ")";
 }
 
@@ -182,14 +187,15 @@ sub featuresForPhone
 {
 	my $self = shift;
 	my $phone = shift;
-	my @tempList = ($phone);
+	my @tempList = ();
+	push(@tempList,$phone);
 	if (exists($self->{'phonesToFeatures'}{$phone}))
 	{
 		return $self->{'phonesToFeatures'}{$phone};
 	}
 	else
 	{
-		print STDERR "WARNING: Could not find phone '$phone' in feature chart.\n";		
+		print STDERR "WARNING: Could not find phone '$phone' in feature chart.  Treating as empty feature bundle, which will match anything.\n";		
 		foreach my $possibleFeature (@{$self->{'features'}})
 		{
 			push(@tempList, "0");
