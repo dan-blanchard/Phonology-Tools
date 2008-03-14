@@ -181,16 +181,52 @@ sub phoneDisjuctionForFeatures
 sub featuresForPhone
 {
 	my $self = shift;
-	if (exists($self->{'phonesToFeatures'}{$_[0]}))
+	my $phone = shift;
+	my @tempList = ($phone);
+	if (exists($self->{'phonesToFeatures'}{$phone}))
 	{
-		return $self->{'phonesToFeatures'}{$_[0]};
+		return $self->{'phonesToFeatures'}{$phone};
 	}
 	else
 	{
-		print STDERR "ERROR: Could not find phone '$_[0]' in feature chart.\n";
-		exit(0);
+		print STDERR "WARNING: Could not find phone '$phone' in feature chart.\n";		
+		foreach my $possibleFeature (@{$self->{'features'}})
+		{
+			push(@tempList, "0");
+		}
+		$self->addLine(@tempList);
+		return $self->{'phonesToFeatures'}{$phone};
 	}
 }
+
+sub featureBundleForPhone
+{
+	my $self = shift;
+	my $phone = shift;
+	my $bundleLeft = shift;
+	my $bundleRight = shift;
+	my $bundleDelimiter = shift;
+	return $bundleLeft . join($bundleDelimiter,$self->featuresForPhone($phone)->members) . $bundleRight;
+}
+
+sub featureBundlesForPhones
+{
+	my $self = shift;
+	my $phones = shift;
+	my $phoneDelimiter = shift;
+	my $bundleLeft = shift;
+	my $bundleRight = shift;
+	my $bundleDelimiter = shift;
+	my $returnString = "";
+	foreach my $phone (split(/\Q$phoneDelimiter\E/,$phones))
+	{		
+		print "Phone: $phone\n";
+		$returnString = $returnString . ($self->featureBundleForPhone($phone,$bundleLeft,$bundleRight,$bundleDelimiter));
+	}
+	print "Return string: $returnString\n";
+	return $returnString;
+}
+
 
 sub unifyPhoneFeatures
 {
