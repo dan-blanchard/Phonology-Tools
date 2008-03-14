@@ -116,8 +116,16 @@ sub phonesForFeatures
 {
 	my $self = shift;
 	my @featureList = @_;
-	# print "Feature list: @_\n";
 	my $featureSet = Set::Scalar->new();
+	if (scalar(@featureList) == 0)
+	{
+		foreach my $phone (keys %{$self->{'phonesToFeatures'}})
+		{
+			$featureSet->insert($phone);
+		}
+		return $featureSet;
+	}
+	# print "Feature list: @_\n";
 	my $first = 1;
 	for (my $i = 0; $i < scalar(@featureList); $i++)
 	{
@@ -179,7 +187,7 @@ sub phonesForFeatures
 sub phoneDisjuctionForFeatures
 {
 	my $self = shift;
-	print "Feature list: @_\n";
+	# print "Feature list: @_\n";
 	return "(?:" . join("|",$self->phonesForFeatures(@_)->members) . ")";
 }
 
@@ -226,10 +234,10 @@ sub featureBundlesForPhones
 	my $returnString = "";
 	foreach my $phone (split(/\Q$phoneDelimiter\E/,$phones))
 	{		
-		print "Phone: $phone\n";
+		# print "Phone: $phone\n";
 		$returnString = $returnString . ($self->featureBundleForPhone($phone,$bundleLeft,$bundleRight,$bundleDelimiter));
 	}
-	print "Return string: $returnString\n";
+	# print "Return string: $returnString\n";
 	return $returnString;
 }
 
@@ -247,17 +255,17 @@ sub unifyPhoneFeatures
 	# print ("New features: $newFeatures\n");
 	my $oldFeatures = $self->featuresForPhone($phone);
 	# print "Old features: $oldFeatures\n";
+	if ($oldFeatures->size == 0)
+	{
+		return $self->phonesForFeatures($oldFeatures->members)->each;
+	}
 	while (defined(my $oldFeature = $oldFeatures->each))
 	{
-		$featureKey = substr($oldFeature,1);
-		$replacementHash{$featureKey} = substr($oldFeature,0,1);
-		while (defined(my $newFeature = $newFeatures->each))
-		{
-			if ($featureKey eq substr($newFeature,1))
-			{
-				$replacementHash{substr($oldFeature,1)} = substr($newFeature,0,1);
-			}
-		}
+		$replacementHash{substr($oldFeature,1)} = substr($oldFeature,0,1);
+	}	
+	while (defined(my $newFeature = $newFeatures->each))
+	{
+		$replacementHash{substr($newFeature,1)} = substr($newFeature,0,1);
 	}
 	foreach $featureKey (keys %replacementHash)
 	{
