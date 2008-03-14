@@ -44,7 +44,7 @@ sub addLine
 	my @line = @_;
 	my $featureKey = "";
 	$self->{'outputTable'}->addRow(@line);
-	print "\nLine: @line\n";
+	# print "\nLine: @line\n";
 	for (my $i = 1; $i < scalar(@line); $i++)
 	{
 		if ($line[$i] ne "0")
