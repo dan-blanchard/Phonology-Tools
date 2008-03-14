@@ -9,17 +9,7 @@
 # TODO symbols
 # TODO add indexing to feature bundles
 
-# Rule form: (A)->(B)(/(C)_(D))
-# Perl form: s/(C)?(A)?(D)?/$1B$3/g
-# SPE		vs		Perl
-# ()				(?:)
-# α					\g{α} (with 5.10) need to count backreferences with 5.8
-# {a,b,...}			(?:a|b|...)
-# a^10				a{10,}
-# ()*				()*
-# <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
-# + in rule			+? in between every character of rules that don't contain +
-# #					$ at end and ^ at beginning
+
 
 
 
@@ -96,38 +86,95 @@ sub IsGreekLower
 END
 }
 
+# Rule form: (A)->(B)(/(C)_(D))
+# Perl form: s/(C)?(A)?(D)?/$1B$3/g
+# SPE		vs		Perl
+# ()				(?:)?
+# α					\g{α} (with 5.10) need to count backreferences with 5.8
+# {a,b,...}			(?:a|b|...)
+# a^10				a{10,}
+# ()*				()*
+# <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
+# + in rule			+? in between every character of rules that don't contain +
+# #					$ at end and ^ at beginning
+# []1				somehow match indexed feature bundles
+
+sub FeatureBundlesForPhones
+{
+	my $phones = shift;
+	my $delimiter = shift;
+	my $returnString = "";
+	foreach my $phone (split(/\Q$delimiter\E/,$phones))
+	{
+		$returnString = $returnString . $featureChart->featureBundleForPhone($phone,$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE);
+	}
+	return $returnString;
+}
+
 sub MatchStringToRegularExpression
 {
 	my $matchString = shift;
 	$matchString =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
-	if ($opt_f)
+	print "\n\nMatch string: $matchString\n\n";
+	if ($opt_f) #If we're dealing with features at all, convert all phonemes to features
 	{
+		if (!$opt_d)
+		{
+			$matchString =~ s{([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E])([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
+								{$1.$featureChart->featureBundlesForPhones($2,"",$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
+			$matchString =~ s{^([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
+								{$featureChart->featureBundlesForPhones($1,"",$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
+			$matchString =~ s/([^\Q$LEFT_FEATURE_BUNDLE\E]+)(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g; # add phoneme boundary markers between feature bundles and other phonemes	
+		}
+		else
+		{			
+			$matchString =~ s{([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E])([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
+								{$1.$featureChart->featureBundleForPhone($2,$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
+			$matchString =~ s{^([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
+								{$featureChart->featureBundleForPhone($1,$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
+		}
 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
 		$matchString =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
-		if (!$opt_d)
-		{
-			# add phoneme boundary markers between feature bundles and other phonemes	
-			$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)([^)])/$1$PHONEME_BOUNDARY$2/g;	
-			$matchString =~ s/([^\(\Q$PHONEME_BOUNDARY\E])(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g;
-			$matchString =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g;
-			$matchString =~ s/\)\(/)$PHONEME_BOUNDARY?(/g;
-		}
-	}
-	else
-	{
-		if (!$opt_d)
-		{
-			# $matchString =~ s/([^()])([^()])/$1$PHONEME_BOUNDARY$2/g;
-			# $matchString =~ s/\)\(/)$PHONEME_BOUNDARY(/g;
-		}
-		$matchString =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
-		$matchString =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
-	}
+		
+	}	
 	$matchString =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
 	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
 	return $matchString;
 }
+
+# sub MatchStringToRegularExpression
+# {
+# 	my $matchString = shift;
+# 	$matchString =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
+# 	if ($opt_f)
+# 	{
+# 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
+# 		$matchString =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
+# 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
+# 		if (!$opt_d)
+# 		{
+# 			# add phoneme boundary markers between feature bundles and other phonemes	
+# 			$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)([^)])/$1$PHONEME_BOUNDARY$2/g;	
+# 			$matchString =~ s/([^\(\Q$PHONEME_BOUNDARY\E])(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g;
+# 			$matchString =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g;
+# 			$matchString =~ s/\)\(/)$PHONEME_BOUNDARY?(/g;
+# 		}
+# 	}
+# 	else
+# 	{
+# 		if (!$opt_d)
+# 		{
+# 			# $matchString =~ s/([^()])([^()])/$1$PHONEME_BOUNDARY$2/g;
+# 			# $matchString =~ s/\)\(/)$PHONEME_BOUNDARY(/g;
+# 		}
+# 		$matchString =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
+# 		$matchString =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
+# 	}
+# 	$matchString =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
+# 	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
+# 	return $matchString;
+# }
 
 sub ReplaceStringToRegularExpression
 {
@@ -186,8 +233,8 @@ while (<RULES>)
 			}
 			$match = MatchStringToRegularExpression($match);
 			$replace = ReplaceStringToRegularExpression($replace);
-			# print "Match: $match\n";
-			# print "Replace: $replace\n";
+			print "Match: $match\n";
+			print "Replace: $replace\n";
 			# More Pretty-Printing Stuff #		
 			$originalRules[-1] =~ s/\Q$ARROW_UNICODE\E/ $ARROW_UNICODE /g;	
 			$originalRules[-1] =~ s/\Q$ARROW_ASCII\E/ $ARROW_UNICODE /g;
