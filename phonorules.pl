@@ -120,11 +120,11 @@ sub MatchStringToRegularExpression
 	{
 		if (!$opt_d)
 		{
-			$matchString =~ s{([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E])([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
+			$matchString =~ s{([\(\Q$RIGHT_FEATURE_BUNDLE\E])([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
 								{$1.$featureChart->featureBundlesForPhones($2,"",$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
 			$matchString =~ s{^([^\Q$WORD_BOUNDARY\E\Q$MORPHEME_BOUNDARY\E\Q$PHONEME_BOUNDARY\E\Q$LEFT_OPTIONAL\E\Q$RIGHT_OPTIONAL\E\Q$LEFT_DISJUNCTIVE\E\Q$RIGHT_DISJUNCTIVE\E\Q$DELIMITER_DISJUNCTIVE\E\Q$LEFT_FEATURE_BUNDLE\E\Q$RIGHT_FEATURE_BUNDLE\E\Q$DELIMITER_FEATURE_BUNDLE\E\Q$ZERO_OR_MORE\E]+)}
 								{$featureChart->featureBundlesForPhones($1,"",$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE)}eg;
-			$matchString =~ s/([^\Q$LEFT_FEATURE_BUNDLE\E]+)(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g; # add phoneme boundary markers between feature bundles and other phonemes	
+			$matchString =~ s/([^\(\Q$LEFT_FEATURE_BUNDLE\E]+)(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g; # add phoneme boundary markers between feature bundles and other phonemes
 		}
 		else
 		{			
@@ -142,39 +142,6 @@ sub MatchStringToRegularExpression
 	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
 	return $matchString;
 }
-
-# sub MatchStringToRegularExpression
-# {
-# 	my $matchString = shift;
-# 	$matchString =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
-# 	if ($opt_f)
-# 	{
-# 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	# morpheme boundaries with features (middle)
-# 		$matchString =~ s/^(\X+)\Q$MORPHEME_BOUNDARY\E(\Q$LEFT_FEATURE_BUNDLE\E\X+)/$1\\$MORPHEME_BOUNDARY$2/g;	    # morpheme boundaries with features (beginning)
-# 		$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E\X*)\Q$MORPHEME_BOUNDARY\E$/$1\\$MORPHEME_BOUNDARY$2/g;	    	# morpheme boundaries with features (end)
-# 		if (!$opt_d)
-# 		{
-# 			# add phoneme boundary markers between feature bundles and other phonemes	
-# 			$matchString =~ s/(\Q$RIGHT_FEATURE_BUNDLE\E)([^)])/$1$PHONEME_BOUNDARY$2/g;	
-# 			$matchString =~ s/([^\(\Q$PHONEME_BOUNDARY\E])(\Q$LEFT_FEATURE_BUNDLE\E)/$1$PHONEME_BOUNDARY$2/g;
-# 			$matchString =~ s/([\(\Q$RIGHT_FEATURE_BUNDLE\E\Q$PHONEME_BOUNDARY\E])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])([^\Q$PHONEME_BOUNDARY\E\Q$LEFT_FEATURE_BUNDLE\E)])/$1$2$PHONEME_BOUNDARY$3/g;
-# 			$matchString =~ s/\)\(/)$PHONEME_BOUNDARY?(/g;
-# 		}
-# 	}
-# 	else
-# 	{
-# 		if (!$opt_d)
-# 		{
-# 			# $matchString =~ s/([^()])([^()])/$1$PHONEME_BOUNDARY$2/g;
-# 			# $matchString =~ s/\)\(/)$PHONEME_BOUNDARY(/g;
-# 		}
-# 		$matchString =~ s/\Q$MORPHEME_BOUNDARY\E/\\$MORPHEME_BOUNDARY/g;
-# 		$matchString =~ s/([\+\[\]\-])/\\$1/g; # escape special characters
-# 	}
-# 	$matchString =~ s/\(\Q$WORD_BOUNDARY\E(\X+)?\)(\X+)\((\X+)?\)/\^($1)$2($3)/g; # word boundary at beginning
-# 	$matchString =~ s/\Q$WORD_BOUNDARY\E/\$/g; # word boundary at end
-# 	return $matchString;
-# }
 
 sub ReplaceStringToRegularExpression
 {
@@ -277,10 +244,6 @@ while (<TEST>)
 			$sForm = "";
 		}
 		$sForm = $line[1];
-		if (!$opt_d)
-		{
-			$uForm =~ s/\Q$PHONEME_BOUNDARY\E//g;		# remove spaces if we're not working with digraphemes
-		}
 		if ($uForm ne "")
 		{	
 			push(@columnNames, $uForm);					
@@ -291,15 +254,15 @@ while (<TEST>)
 				$match = $matches[$i];
 				if ($match !~ m/\\\Q$MORPHEME_BOUNDARY\E/)
 				{
-					$uForm =~ s/\Q$MORPHEME_BOUNDARY\E//g;		
+					$uForm =~ s/\Q$MORPHEME_BOUNDARY\E//g;		# This doesn't quite work because we permanently lose morpheme boundaries
 				}
 				# print "Match: $match\n";
 				# print "Replace: $replaces[$i]\n";
 				# print "uForm: $uForm\n";
 				if ($opt_f)
-				{
+				{					
 					# The mess below converts features to disjunctions of phones that match those features
-					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]+)\Q$RIGHT_FEATURE_BUNDLE\E}
+					$match =~ s{\Q$LEFT_FEATURE_BUNDLE\E([^\Q$LEFT_FEATURE_BUNDLE\E]*)\Q$RIGHT_FEATURE_BUNDLE\E}
 								{$featureChart->phoneDisjuctionForFeatures(split(/$DELIMITER_FEATURE_BUNDLE/,$1))}eg;
 					if ($match =~ m/\Q$PHONEME_BOUNDARY\E/)
 					{						
@@ -312,13 +275,13 @@ while (<TEST>)
 					{
 						$uForm =~ s/\Q$PHONEME_BOUNDARY\E//g;
 					}
-					# print "Feature match: $match\n";
-					# print "uForm: $uForm\n";
+					print "Feature match: $match\n";
+					print "uForm: $uForm\n";
 				}
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
-					# print "Phone being replaced: $phoneReplacing\n";
+					print "Phone being replaced: $phoneReplacing\n";
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
@@ -333,9 +296,10 @@ while (<TEST>)
 						}
 						my @oldBundles = split(/\Q$PHONEME_BOUNDARY\E/,$phoneReplacing);
 						my @newBundles = split(/\Q$PHONEME_BOUNDARY\E/,$tempReplace);
+						print "tempReplace: $tempReplace\n";
 						shift(@newBundles);
 						pop(@newBundles);
-						if (scalar(@oldBundles) == scalar(@newBundles))
+						if (scalar(@oldBundles) >= scalar(@newBundles))
 						{
 							# print "Counts-old: " . scalar(@oldBundles) . "\tCounts-new: " . scalar(@newBundles) . "\n";
 							for (my $j = 0; $j < scalar(@newBundles); $j++)
@@ -359,9 +323,8 @@ while (<TEST>)
 						else
 						{
 							print STDERR "ERROR: Mismatched number of elements on LHS and RHS of arrow in rule $originalRules[$i]\n";
- 							exit(0);
+ 							# exit(0);
 						}
-						# The mess below looks up features of phones, intersects them with those specified in $replace, and then returns the first phone that satisfies that
 						# print "Feature replace: $tempReplace\n";
 					}
 					# print "Altered replace: $tempReplace\n";
