@@ -322,8 +322,8 @@ while (<TEST>)
 						}
 						else
 						{
-							print STDERR "ERROR: Mismatched number of elements on LHS and RHS of arrow in rule $originalRules[$i]\n";
- 							# exit(0);
+							print STDERR "ERROR: Rule $originalRules[$i] contains implicit insertion(s).  Please use a separate rules for insertions.\n";
+ 							exit(0);
 						}
 						# print "Feature replace: $tempReplace\n";
 					}
