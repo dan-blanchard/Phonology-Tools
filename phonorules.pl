@@ -93,7 +93,7 @@ END
 # α					\g{α} (with 5.10) need to count backreferences with 5.8
 # {a,b,...}			(?:a|b|...)
 # a^10				a{10,}
-# ()*				()*
+# ()*				()* (with /g for global, since it applies to ALL, not just longest)
 # <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
 # + in rule			+? in between every character of rules that don't contain +
 # #					$ at end and ^ at beginning
@@ -358,6 +358,6 @@ $outputTable->addRow(@surfaceForms);
 $outputTable->addRow(@attestedForms);
 if ($opt_f)
 {
-	print $featureChart;
+#	print $featureChart;
 }
 print "\n$outputTable\n";

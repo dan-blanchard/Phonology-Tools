@@ -1,0 +1,5 @@
+% Polish Vowel height and voicing
+[-high]->[+high]/_[+voice]#
+[-sonorant]->[-voice]/_#
+% underlying form of zwup = zwob
+% underlying form of klup = klub
