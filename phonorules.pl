@@ -9,8 +9,18 @@
 # TODO symbols
 # TODO add indexing to feature bundles
 
-
-
+# Rule form: (A)->(B)(/(C)_(D))
+# Perl form: s/(C)?(A)?(D)?/$1B$3/g
+# SPE		vs		Perl
+# ()				(?:)?
+# α					\g{α} (with 5.10) need to count backreferences with 5.8
+# {a,b,...}			(?:a|b|...)
+# a^10				a{10,}
+# ()*				()* (with /g for global, since it applies to ALL, not just longest)
+# <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
+# + in rule			+? in between every character of rules that don't contain +
+# #					$ at end and ^ at beginning
+# []1				somehow match indexed feature bundles
 
 
 use strict;
@@ -85,19 +95,6 @@ sub IsGreekLower
 &utf8::LowercaseLetter
 END
 }
-
-# Rule form: (A)->(B)(/(C)_(D))
-# Perl form: s/(C)?(A)?(D)?/$1B$3/g
-# SPE		vs		Perl
-# ()				(?:)?
-# α					\g{α} (with 5.10) need to count backreferences with 5.8
-# {a,b,...}			(?:a|b|...)
-# a^10				a{10,}
-# ()*				()* (with /g for global, since it applies to ALL, not just longest)
-# <A>B<C>			(?:ABC)|(?:B) (can happen INSIDE FEATURE BUNDLES!)
-# + in rule			+? in between every character of rules that don't contain +
-# #					$ at end and ^ at beginning
-# []1				somehow match indexed feature bundles
 
 sub FeatureBundlesForPhones
 {
