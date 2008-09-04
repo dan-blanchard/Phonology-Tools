@@ -3,7 +3,7 @@
 # Dan Blanchard
 # Phonological Rule Processor
 
-# Usage: ./phonorules [-d] [-f <FEATURE CHART FILE>] [-s <SYMBOL TABLE FILE>] <RULE FILE> <TEST FILE>
+# Usage: ./phonorules [-v] [-d] [-f <FEATURE CHART FILE>] [-s <SYMBOL TABLE FILE>] <RULE FILE> <TEST FILE>
 
 # TODO "n or more" repetitions
 # TODO symbols
@@ -22,7 +22,7 @@
 # #					$ at end and ^ at beginning
 # []1				somehow match indexed feature bundles
 
-
+use 5.010;
 use strict;
 use POSIX;
 use utf8;
@@ -56,8 +56,8 @@ Readonly::Scalar my $EMPTY_CELL => '-';
 Readonly::Scalar my $ZERO_OR_MORE => '*';
 
 # Command-line arguments
-our ($opt_f, $opt_d, $opt_s);
-getopts('df:s:');
+our ($opt_v, $opt_f, $opt_d, $opt_s);
+getopts('vdf:s:');
 
 # Setup Unicode input and output
 binmode STDOUT, ":utf8";
@@ -112,7 +112,10 @@ sub MatchStringToRegularExpression
 {
 	my $matchString = shift;
 	$matchString =~ s/\Q$EMPTY_SET_UNICODE\E//g; # insertions
-	print "\n\nMatch string: $matchString\n\n";
+	if ($opt_v)
+	{
+		print "\n\nMatch string: $matchString\n\n";
+	}
 	if ($opt_f) #If we're dealing with features at all, convert all phonemes to features
 	{
 		if (!$opt_d)
@@ -197,8 +200,11 @@ while (<RULES>)
 			}
 			$match = MatchStringToRegularExpression($match);
 			$replace = ReplaceStringToRegularExpression($replace);
-			print "Match: $match\n";
-			print "Replace: $replace\n";
+			if ($opt_v)
+			{
+				print "Match: $match\n";
+				print "Replace: $replace\n";				
+			}
 			# More Pretty-Printing Stuff #		
 			$originalRules[-1] =~ s/\Q$ARROW_UNICODE\E/ $ARROW_UNICODE /g;	
 			$originalRules[-1] =~ s/\Q$ARROW_ASCII\E/ $ARROW_UNICODE /g;
@@ -253,9 +259,12 @@ while (<TEST>)
 				{
 					$uForm =~ s/\Q$MORPHEME_BOUNDARY\E//g;		# This doesn't quite work because we permanently lose morpheme boundaries
 				}
-				# print "Match: $match\n";
-				# print "Replace: $replaces[$i]\n";
-				# print "uForm: $uForm\n";
+				# if ($opt_v)
+				# {
+				# 	print "Match: $match\n";
+				# 	print "Replace: $replaces[$i]\n";
+				# 	print "uForm: $uForm\n";					
+				# }
 				if ($opt_f)
 				{					
 					# The mess below converts features to disjunctions of phones that match those features
@@ -272,13 +281,19 @@ while (<TEST>)
 					{
 						$uForm =~ s/\Q$PHONEME_BOUNDARY\E//g;
 					}
-					print "Feature match: $match\n";
-					print "uForm: $uForm\n";
+					if ($opt_v)
+					{
+						print "Feature match: $match\n";
+						print "uForm: $uForm\n";
+					}
 				}
 				if ($uForm =~ m/$match/)
 				{
 					$phoneReplacing = $2;
-					print "Phone being replaced: $phoneReplacing\n";
+					if ($opt_v)
+					{
+						print "Phone being replaced: $phoneReplacing\n";						
+					}
 					my $tempReplace = $replaces[$i];
 					if ($opt_f)
 					{
@@ -293,7 +308,10 @@ while (<TEST>)
 						}
 						my @oldBundles = split(/\Q$PHONEME_BOUNDARY\E/,$phoneReplacing);
 						my @newBundles = split(/\Q$PHONEME_BOUNDARY\E/,$tempReplace);
-						print "tempReplace: $tempReplace\n";
+						if ($opt_v)
+						{
+							print "tempReplace: $tempReplace\n";							
+						}
 						shift(@newBundles);
 						pop(@newBundles);
 						if (scalar(@oldBundles) >= scalar(@newBundles))
