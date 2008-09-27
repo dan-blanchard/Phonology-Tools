@@ -96,18 +96,6 @@ sub IsGreekLower
 END
 }
 
-sub FeatureBundlesForPhones
-{
-	my $phones = shift;
-	my $delimiter = shift;
-	my $returnString = "";
-	foreach my $phone (split(/\Q$delimiter\E/,$phones))
-	{
-		$returnString = $returnString . $featureChart->featureBundleForPhone($phone,$LEFT_FEATURE_BUNDLE,$RIGHT_FEATURE_BUNDLE,$DELIMITER_FEATURE_BUNDLE);
-	}
-	return $returnString;
-}
-
 sub MatchStringToRegularExpression
 {
 	my $matchString = shift;
