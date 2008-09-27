@@ -49,18 +49,37 @@ sub findCommonFeatures
 	my @phonemeList = @_;
 	my $currentFeatureSet = Set::Scalar->new();
 	my $nextFeatureSet;
+	my $nextPhoneme;
+	my $difference = 0;
 	if (scalar(@phonemeList) > 1)
 	{
 		# print "Phoneme list: @phonemeList\n";
 		for (my $i = 0; $i < (scalar(@phonemeList) - 1); $i++)
 		{	
-			$nextFeatureSet = Set::Scalar->new(split(",",substr($featureChart->featuresForPhone($phonemeList[$i+1]),1,-1)));
+			if (substr($phonemeList[$i+1],0,1) eq "-")
+			{
+				$nextPhoneme = substr($phonemeList[$i+1], 1);
+				$difference = 1;
+			}
+			else
+			{
+				$nextPhoneme = $phonemeList[$i+1];
+				$difference = 0;				
+			}
+			$nextFeatureSet = Set::Scalar->new(split(",",substr($featureChart->featuresForPhone($nextPhoneme),1,-1)));
 			# print "Next feature set: $nextFeatureSet\n";
 			if ($currentFeatureSet->is_empty)
 			{
 				$currentFeatureSet = Set::Scalar->new(split(",",substr($featureChart->featuresForPhone($phonemeList[$i]),1,-1)));
+			}			
+			if ($difference == 0)
+			{
+				$currentFeatureSet = $currentFeatureSet->intersection($nextFeatureSet);						
 			}
-			$currentFeatureSet = $currentFeatureSet->intersection($nextFeatureSet);		
+			else
+			{
+				$currentFeatureSet = $currentFeatureSet->difference($nextFeatureSet);						
+			}
 		}
 	}
 	else
