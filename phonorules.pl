@@ -30,7 +30,7 @@ use Encode;
 use Text::ASCIITable;
 use Getopt::Std;
 use warnings;
-use FeatureChart;
+use featurechart;
 use Readonly;
 
 # Special Characters
