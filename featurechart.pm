@@ -14,6 +14,11 @@ use Readonly;
 Readonly::Scalar our $BAD_LEFT => '⟪';
 Readonly::Scalar our $BAD_RIGHT => '⟫';
 
+# Setup Unicode input and output
+binmode STDOUT, ":utf8";
+binmode STDIN, ":utf8";
+binmode STDERR, ":utf8";
+
 use overload	'""' => \&stringify; # Allows pretty printing of feature chart
 
 # Constructor

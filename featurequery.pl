@@ -35,10 +35,17 @@ Readonly::Scalar my $DELIMITER_FEATURE_BUNDLE => ',';
 Readonly::Scalar my $EMPTY_CELL => '-';
 Readonly::Scalar my $ZERO_OR_MORE => '*';
 Readonly::Scalar my $DELIMITER_PHONEME => ',';
+
 # Global variables
 my $featureFile = $ARGV[0];
 my $featureChart;
 my $phonemes;
+
+# Setup Unicode input and output
+binmode STDOUT, ":utf8";
+binmode STDIN, ":utf8";
+binmode STDERR, ":utf8";
+
 
 # Read in feature chart
 $featureChart = FeatureChart->new();
