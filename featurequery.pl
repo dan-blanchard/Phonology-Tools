@@ -96,6 +96,7 @@ sub findCommonFeatures
 	return $currentFeatureSet;
 }
 
+# Expects comma-separated list of phonemes with minuses in front of features to be eliminated.  Can't have minus infront of first one.
 print "Enter phonemes to see their common features [CTRL-D to quit]: ";	
 while ($phonemes = <STDIN>)
 {
