@@ -38,6 +38,11 @@ Readonly::Scalar my $DELIMITER_PHONEME => ',';
 
 # Global variables
 my $featureFile = $ARGV[0];
+my $inventoryFile = "";
+if (scalar(@ARGV) > 1)
+{
+	$inventoryFile = $ARGV[1];
+}
 my $featureChart;
 my $phonemes;
 
@@ -49,7 +54,14 @@ binmode STDERR, ":utf8";
 
 # Read in feature chart
 $featureChart = FeatureChart->new();
-$featureChart->read_file($featureFile);
+if ($inventoryFile ne "")
+{
+	$featureChart->read_file($featureFile,$inventoryFile);	
+}
+else
+{
+	$featureChart->read_file($featureFile);
+}
 
 sub findCommonFeatures
 {

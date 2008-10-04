@@ -88,6 +88,18 @@ sub read_file
 	my @line;
 	my $first = 1;
 	my $featureKey = "";
+	my %inventory = ();
+	if (scalar(@_) == 2)
+	{
+		open INVENTORY, $_[1];
+		binmode INVENTORY, ":utf8";
+		while (<INVENTORY>)
+		{
+			chomp;
+			$inventory{$_} = 1;
+		}
+		close(INVENTORY);
+	}
 	open FEATURES, $_[0];
 	binmode FEATURES, ":utf8";
 	while (<FEATURES>)
@@ -96,7 +108,10 @@ sub read_file
 		@line = split(/\t/);	
 		if (!$first)
 		{
-			$self->addLine(@line);
+			if ((!%inventory) || (exists $inventory{$line[0]}))
+			{
+				$self->addLine(@line);				
+			}
 		}
 		else
 		{
