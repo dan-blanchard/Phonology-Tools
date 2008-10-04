@@ -85,7 +85,15 @@ sub findCommonFeatures
 			}
 			else
 			{
-				$currentFeatureSet = $currentFeatureSet->difference($nextFeatureSet);						
+				# Added to correctly handle case where user enters an invalid phoneme
+				if (!$nextFeatureSet->is_empty)
+				{
+					$currentFeatureSet = $currentFeatureSet->difference($nextFeatureSet);											
+				}
+				else
+				{
+					$currentFeatureSet = $currentFeatureSet->empty;
+				}
 			}
 		}
 	}
@@ -93,7 +101,7 @@ sub findCommonFeatures
 	{	
 		$currentFeatureSet = Set::Scalar->new(split(",",substr($featureChart->featuresForPhone($phonemeList[0]),1,-1)))
 	}	
-	return $currentFeatureSet;
+	return $currentFeatureSet . "\nMatching Phones: " . substr($featureChart->phonesForFeatures($currentFeatureSet->members),1,-1);
 }
 
 # Expects comma-separated list of phonemes with minuses in front of features to be eliminated.  Can't have minus infront of first one.
@@ -101,6 +109,13 @@ print "Enter phonemes to see their common features [CTRL-D to quit]: ";
 while ($phonemes = <STDIN>)
 {
 	chomp $phonemes;
-	print findCommonFeatures(split($DELIMITER_PHONEME,$phonemes)) . "\n\n";
+	if (substr($phonemes, 0, 1) eq "[")
+	{
+		print substr($featureChart->phonesForFeatures(split($DELIMITER_FEATURE_BUNDLE,substr($phonemes,1,-1))),1,-1) . "\n\n";
+	}
+	else
+	{
+		print findCommonFeatures(split($DELIMITER_PHONEME,$phonemes)) . "\n\n";		
+	}
 	print "Enter phonemes to see their common features [CTRL-D to quit]: ";	
 }

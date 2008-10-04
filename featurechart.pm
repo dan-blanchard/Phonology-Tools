@@ -134,6 +134,7 @@ sub phonesForFeatures
 	my $first = 1;
 	for (my $i = 0; $i < scalar(@featureList); $i++)
 	{
+		$featureList[$i] =~ s/^ //;
 		if (exists($self->{'featuresToPhones'}{$featureList[$i]}))
 		{
 			if (!$first)
